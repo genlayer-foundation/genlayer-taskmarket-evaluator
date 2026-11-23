@@ -1,0 +1,9 @@
+.live-milestone, .case-guide { margin-block: 2rem; padding-block: 1.5rem; border-top: 1px solid var(--line); }
+.live-milestone h2, .case-guide h2 { font: 2rem/1.2 var(--serif); }
+.live-milestone h3 { text-transform: capitalize; }
+.live-milestone p, .case-guide p, .case-guide li { max-width: 74ch; margin-block: .65rem; }
+.live-milestone code, .live-milestone strong { display: block; overflow-wrap: anywhere; }
+.live-milestone pre { overflow-x: auto; padding: .75rem; background: var(--cream); font-size: .85rem; }
+.live-milestone details { margin-block: .8rem; }
+.live-milestone strong { color: var(--red); }
+.case-guide ol { padding-inline-start: 1.5rem; }

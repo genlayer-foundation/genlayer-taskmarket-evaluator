@@ -2,8 +2,11 @@
 """Bootstrap the evaluator's two credentials and monitor its local SQLite database."""
 import datetime
 import hashlib
+from http.server import BaseHTTPRequestHandler
 import json
 import os
+import re
+import socketserver
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -13,6 +16,48 @@ import urllib.request
 
 ROOT = Path("/srv/taskmarket-evaluator")
 SERVICE = "taskmarket-evaluator-testnet"
+
+
+def serve_cases(bucket, network, socket_path):
+    if network not in ("tempo-testnet", "tempo-mainnet"):
+        raise ValueError("Unknown settlement network")
+
+    class Publisher(BaseHTTPRequestHandler):
+        def do_PUT(self):
+            if not re.fullmatch(r"/0x[0-9a-f]{64}", self.path):
+                return self.send_error(400)
+            try:
+                size = int(self.headers.get("Content-Length", "0"))
+                if not 0 < size <= 512_000:
+                    return self.send_error(413)
+                record = json.loads(self.rfile.read(size))
+                if (set(record) != {"id", "network", "phase", "milestones"} or
+                        record["network"] != network or record["id"] != self.path[1:]):
+                    return self.send_error(400)
+                for item in record["milestones"]:
+                    if (set(item) - {"milestone", "status", "tx", "decision", "deadline", "result"} or
+                            ("result" in item and set(item["result"]) != {"verdict", "reasoning"})):
+                        return self.send_error(400)
+                subprocess.run(["aws", "s3", "cp", "-", "s3://" + bucket + "/cases/" + network + self.path + ".json",
+                                "--content-type", "application/json", "--cache-control", "no-store",
+                                "--only-show-errors"], input=json.dumps(record).encode(), check=True, timeout=9)
+                self.send_response(204)
+                self.end_headers()
+            except (ValueError, TypeError, KeyError):
+                self.send_error(400)
+            except (OSError, subprocess.SubprocessError):
+                self.send_error(503)
+
+    class Server(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
+        daemon_threads = True
+
+    # BaseHTTPRequestHandler's default access log expects an IP address.
+    Publisher.log_message = lambda self, *args: None
+    Path(socket_path).parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    Path(socket_path).unlink(missing_ok=True)
+    with Server(socket_path, Publisher) as server:
+        os.chmod(socket_path, 0o600)
+        server.serve_forever()
 
 
 def command(*args):
@@ -175,5 +220,7 @@ if __name__ == "__main__":
         credentials(True)
     elif len(sys.argv) == 3 and sys.argv[1] == "monitor":
         monitor(sys.argv[2])
+    elif len(sys.argv) == 5 and sys.argv[1] == "publish-cases":
+        serve_cases(*sys.argv[2:])
     else:
         raise SystemExit("Usage: host.py credentials | monitor BUCKET")

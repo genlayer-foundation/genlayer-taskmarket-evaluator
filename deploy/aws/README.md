@@ -48,6 +48,10 @@ sudo docker exec taskmarket-worker-mainnet node dist/src/taskmarket/main.js trac
 
 ## Release or recover
 
+The signing worker watches enrolled cases independently of its settlement loop. Its publisher socket at `/run/taskmarket-live/publish.sock` accepts only the public case projection and acknowledges each upload to S3. CloudFront disables caching on `/cases/*`. Taskmarket must accept a case-link email for both onchain wallets before a fresh ruling can start. Ask participants to register their Taskmarket inboxes and prepare a funded Bradbury wallet before delivery. A delivery acknowledgment means the inbox accepted the message. Participants should keep their live case open to see updates without waiting for mail.
+
+The SQLite tables `live_cases` and `notice_deliveries` preserve the last public record and per-wallet delivery receipts across restarts. Check `taskmarket-publisher.service` or `taskmarket-publisher-mainnet.service` on the host if case publication stops. A local signing worker also needs this publisher. Run `AWS_PROFILE=foundation-apps AWS_REGION=us-east-1 python3 deploy/aws/host.py publish-cases "$receipts" tempo-testnet "$TMPDIR/taskmarket-cases/publish.sock"` with the appropriate bucket and set `TASKMARKET_PUBLISH_SOCKET` to that socket. Operators hosting their own site set `TASKMARKET_PUBLIC_URL` to its HTTPS origin. The local simulation requires neither publication nor email.
+
 The `PublicSite` stack output is the standalone Internet Court × Taskmarket landing page. Its `/explorer` reads the same-origin `ReceiptFeed` output. The monitor publishes completed Taskmarket evaluations from both settlement networks, including the public brief, milestone terms, reasons, decision, amount and receipt references. CloudFront can read the two site documents, their static assets, and `completed.json` from a dedicated bucket. New settlements are published on the next monitor run and cached for one minute.
 
 To release a site change, run the following from the repository root with the Foundation AWS profile and region set. The evaluator publishes the feed independently.
@@ -56,6 +60,7 @@ To release a site change, run the following from the repository root with the Fo
 receipts=$(aws cloudformation describe-stack-resource --stack-name "$stack" --logical-resource-id Receipts --query StackResourceDetail.PhysicalResourceId --output text)
 aws s3 cp site/assets/ "s3://$receipts/assets/" --recursive --cache-control "public, max-age=60"
 aws s3 cp site/explorer.html "s3://$receipts/explorer.html" --content-type text/html --cache-control "public, max-age=60"
+aws s3 cp site/case.html "s3://$receipts/case.html" --content-type text/html --cache-control "public, max-age=60"
 aws s3 cp site/index.html "s3://$receipts/index.html" --content-type text/html --cache-control "public, max-age=60"
 ```
 

@@ -11,6 +11,7 @@ export type Ports = {
   collect: typeof evidence.collectEvidence;
   submissionBlock: typeof tempo.submissionBlock;
   judge: (job: Job, j: Judgment, save: () => void) => Promise<void>;
+  noticesReady?: (job: Job) => boolean;
   relay: typeof tempo.relay;
   settlement: typeof tempo.settlement;
   recoverVerdict: typeof tempo.recoverVerdict;
@@ -108,6 +109,7 @@ export async function advance(job: Job, p: Ports, persist: () => void) {
       throw new Review("Evaluation deadline passed");
     const j = job.judgments.find((x) => !x.result);
     if (j) {
+      if (!j.signed && !j.tx && !j.evmTx && p.noticesReady && !p.noticesReady(job)) return;
       await p.judge(job, j, save);
       save();
       return;

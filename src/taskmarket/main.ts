@@ -14,6 +14,7 @@ import { bradbury, bradburyPreflight } from "./bradbury.js";
 import * as tempo from "./tempo.js";
 import { collectEvidence } from "./evidence.js";
 import { runExample, scenarios } from "./demo.js";
+import { CaseNotices, noticeIO } from "./notices.js";
 
 const [command = "serve", ...args] = process.argv.slice(2);
 const demo = command === "demo";
@@ -82,6 +83,8 @@ async function main() {
     await serve(db);
     return;
   }
+  let noticeTimer: ReturnType<typeof setInterval> | undefined;
+  let notices: CaseNotices | undefined;
   try {
     if (command === "track" && args.length === 2) {
       const id = hash.parse(args[0]);
@@ -108,7 +111,12 @@ async function main() {
     const pilotId =
       command === "pilot" ? await preparePilot(db, privateKeyToAccount(key).address) : undefined;
     const judge = await bradbury(key);
-    const ports = { ...tempo, wallet, judge, collect: collectEvidence };
+    notices = new CaseNotices(db, noticeIO());
+    const ports = { ...tempo, wallet, judge, collect: collectEvidence, noticesReady: notices.ready.bind(notices) };
+    if (command !== "once") {
+      notices.tick();
+      noticeTimer = setInterval(notices.tick.bind(notices), 1000);
+    }
     const offerPath = command === "work" ? process.env.TASKMARKET_ACCEPT_BRIEF : undefined;
     const offer = offerPath
       ? agreementSchema.parse(JSON.parse(readFileSync(offerPath, "utf8")))
@@ -139,6 +147,7 @@ async function main() {
         await advance(j, ports, () => db.save(j));
         if (j.judgments.some((r) => r.signed && !r.tx) && j.phase === "evaluating") break;
       }
+      if (command === "once") for (const job of db.list()) await notices.update(job);
       if (pilotId) {
         const job = db.get(pilotId)!;
         if (job.phase === "settled") {
@@ -151,6 +160,8 @@ async function main() {
       if (command !== "once") await delay(10000);
     } while (command !== "once");
   } finally {
+    clearInterval(noticeTimer);
+    await notices?.drain();
     db.close();
   }
 }

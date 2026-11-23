@@ -34,6 +34,21 @@ PY
   mv "$root/state/restored.sqlite" "$root/state/taskmarket.sqlite"
 fi
 systemctl enable --now docker
+install -d -m 0700 "$root/live"
+cat > "/etc/systemd/system/taskmarket-publisher$suffix.service" <<UNIT
+[Unit]
+Description=Publish Internet Court live cases on $network
+After=network-online.target
+[Service]
+Environment=AWS_REGION=$AWS_REGION
+ExecStart=/usr/local/sbin/taskmarket-host publish-cases $RECEIPTS_BUCKET $network $root/live/publish.sock
+Restart=always
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable "taskmarket-publisher$suffix.service"
+systemctl restart "taskmarket-publisher$suffix.service"
 config=$(mktemp -d)
 trap 'rm -rf -- "$config"' EXIT
 aws ecr get-login-password | docker --config "$config" login --username AWS --password-stdin "${IMAGE%%/*}"
@@ -48,6 +63,7 @@ for name in "taskmarket-worker$suffix" "taskmarket-ledger$suffix"; do
   fi
 done
 docker run -d --name "taskmarket-worker$suffix" --restart unless-stopped "${registry_args[@]}" "${state_args[@]}" \
+  -v "$root/live:/run/taskmarket-live:ro" \
   -v "$root/keys/evaluator:/app/data/$wallet_dir/evaluator" -v "$root/keys/bradbury.key:/app/data/$wallet_dir/bradbury.key:ro" \
   "$IMAGE" node dist/src/taskmarket/main.js work
 docker run -d --name "taskmarket-ledger$suffix" --restart unless-stopped "${registry_args[@]}" "${state_args[@]}" \

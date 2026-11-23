@@ -91,6 +91,12 @@ Resources:
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt ExplorerRoute.FunctionARN
+        CacheBehaviors:
+          - PathPattern: '/cases/*'
+            TargetOriginId: receipts
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
   ExplorerRoute:
     Type: AWS::CloudFront::Function
     Properties:
@@ -104,6 +110,9 @@ Resources:
           var request = event.request;
           if (request.uri === '/explorer' || request.uri === '/explorer/') {
             request.uri = '/explorer.html';
+          }
+          if (request.uri === '/case' || request.uri === '/case/') {
+            request.uri = '/case.html';
           }
           return request;
         }
@@ -121,6 +130,8 @@ Resources:
               - !Sub '${Receipts.Arn}/completed.json'
               - !Sub '${Receipts.Arn}/index.html'
               - !Sub '${Receipts.Arn}/explorer.html'
+              - !Sub '${Receipts.Arn}/case.html'
+              - !Sub '${Receipts.Arn}/cases/*'
               - !Sub '${Receipts.Arn}/assets/*'
             Condition:
               StringEquals:
@@ -156,6 +167,9 @@ Resources:
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: [!Sub '${Backups.Arn}/backups/journal.sqlite', !Sub '${Backups.Arn}/backups/mainnet.sqlite', !Sub '${Receipts.Arn}/completed.json']
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${Receipts.Arn}/cases/*'
               - Effect: Allow
                 Action: cloudwatch:PutMetricData
                 Resource: '*'
