@@ -923,3 +923,12 @@ body::before {
 .tm-controls button { background: var(--accent); color: var(--bg-deep); font-weight: 700; cursor: pointer; }
 .tm-alert { color: var(--review); }
 @media(max-width: 720px) { .tm-layout {grid-template-columns:1fr;} .tm-layout aside {max-height:280px;overflow:auto;} .tm-main {padding-inline:1rem;} .tm-finance {grid-template-columns:1fr 1fr;} .nav {padding-inline:1rem;} }
+
+.court-nav {
+  background: #fafafa;
+  border-bottom: 2px solid #dc2626;
+}
+.court-wordmark { display: inline-flex; align-items: center; }
+.court-wordmark img { display: block; height: 26px; max-width: min(52vw, 220px); }
+.court-nav .tm-status { background: #f2f2f2; color: #292929; border-color: #ccc; }
+.court-ledger { --accent: #ff948c; --accent-subtle: rgba(220, 38, 38, 0.08); }

@@ -214,18 +214,17 @@ export default function Taskmarket() {
   const active = feed?.jobs.find((j) => j.id === selected) ?? feed?.jobs[0];
   return (
     <>
-      <nav className="nav">
-        <div className="nav-brand">
-          <img src="/logo.svg" alt="GenLayer" />
-          <span>Taskmarket evaluator</span>
-        </div>
+      <nav className="nav court-nav">
+        <a className="court-wordmark" href="https://internetcourt.org/" aria-label="Internet Court home">
+          <img src="/internet-court.svg" alt="Internet Court" />
+        </a>
         {feed && (
           <span className="tm-status">
             {feed.mode === "simulation" ? "Local simulation" : "Tempo Moderato"}
           </span>
         )}
       </nav>
-      <main className="container tm-main">
+      <main className="container tm-main court-ledger">
         <div className="page-header">
           <h1>Evaluation ledger</h1>
           <p>

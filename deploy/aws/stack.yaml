@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Private host and recovery storage for the GenLayer Taskmarket testnet evaluator.
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+  Ami:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64
+Resources:
+  Images:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RepositoryName: !Ref AWS::StackName
+      ImageTagMutability: IMMUTABLE
+      ImageScanningConfiguration: {ScanOnPush: true}
+  Backups:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-${AWS::AccountId}-${AWS::Region}'
+      VersioningConfiguration: {Status: Enabled}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls: {Rules: [{ObjectOwnership: BucketOwnerEnforced}]}
+      LifecycleConfiguration:
+        Rules:
+          - Id: JournalVersions
+            Prefix: backups/
+            Status: Enabled
+            NoncurrentVersionExpiration: {NoncurrentDays: 30}
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Backups
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: [!GetAtt Backups.Arn, !Sub '${Backups.Arn}/*']
+            Condition: {Bool: {'aws:SecureTransport': 'false'}}
+  HostRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ec2.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: Runtime
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['ssm:UpdateInstanceInformation', 'ssmmessages:CreateControlChannel', 'ssmmessages:CreateDataChannel', 'ssmmessages:OpenControlChannel', 'ssmmessages:OpenDataChannel', 'ecr:GetAuthorizationToken']
+                Resource: '*'
+              - Effect: Allow
+                Action: ['ecr:BatchGetImage', 'ecr:GetDownloadUrlForLayer', 'ecr:BatchCheckLayerAvailability']
+                Resource: !GetAtt Images.Arn
+              - Effect: Allow
+                Action: 'secretsmanager:GetSecretValue'
+                Resource: !Sub 'arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/evaluator-??????'
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: [!Sub '${Backups.Arn}/release/*', !Sub '${Backups.Arn}/backups/journal.sqlite']
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${Backups.Arn}/backups/journal.sqlite'
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: '*'
+                Condition: {StringEquals: {'cloudwatch:namespace': 'GenLayer/Taskmarket'}}
+  Profile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: {Roles: [!Ref HostRole]}
+  Group:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Outbound-only evaluator, managed through Systems Manager
+      VpcId: !Ref VpcId
+  Host:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t4g.small
+      ImageId: !Ref Ami
+      IamInstanceProfile: !Ref Profile
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          AssociatePublicIpAddress: false
+          SubnetId: !Ref SubnetId
+          GroupSet: [!Ref Group]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs: {VolumeType: gp3, VolumeSize: 16, Encrypted: true, DeleteOnTermination: false}
+      MetadataOptions: {HttpTokens: required, HttpEndpoint: enabled, HttpPutResponseHopLimit: 1}
+      Tags:
+        - {Key: Name, Value: !Ref AWS::StackName}
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          set -eu
+          dnf -y install docker
+          systemctl enable --now docker
+  Health:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${AWS::StackName}-worker-health'
+      AlarmDescription: The evaluator or journal backup is unhealthy, or host metrics stopped.
+      Namespace: GenLayer/Taskmarket
+      MetricName: Healthy
+      Dimensions: [{Name: Service, Value: !Ref AWS::StackName}]
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+  Deadline:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${AWS::StackName}-review-deadline'
+      AlarmDescription: A tracked job needs review or has fewer than two hours before its evaluator deadline.
+      Namespace: GenLayer/Taskmarket
+      MetricName: NeedsAttention
+      Dimensions: [{Name: Service, Value: !Ref AWS::StackName}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+Outputs:
+  HostId: {Value: !Ref Host}
+  Bucket: {Value: !Ref Backups}
+  ImageRepository: {Value: !GetAtt Images.RepositoryUri}

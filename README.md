@@ -1,6 +1,6 @@
-# GenLayer evaluator for Taskmarket
+# Internet Court evaluator for Taskmarket
 
-A requester names a Tempo evaluator wallet when opening a claim task. The worker submits public text artifacts. The evaluator verifies the submission, obtains a finalized GenLayer Bradbury ruling for each agreed milestone, and relays the award to Taskmarket. The ledger records the recipient and amount after verifying a successful settlement receipt and the OUSD transfer.
+Internet Court checks public work against agreed milestone rubrics. A requester names its Tempo evaluator wallet when opening a claim task. The worker submits public text artifacts. The evaluator verifies the submission, obtains a finalized GenLayer Bradbury ruling for each agreed milestone, and relays the award to Taskmarket. The ledger records the recipient and amount after verifying a successful settlement receipt and the OUSD transfer.
 
 ## Verified testnet pilot · 23 November 2026
 
@@ -92,10 +92,10 @@ The profile and service can be published directly through Taskmarket. Use the ev
 
 ```sh
 scripts/pilot-wallet evaluator agent listing
-scripts/pilot-wallet evaluator agent profile set --name "GenLayer Evaluator" \
+scripts/pilot-wallet evaluator agent profile set --name "Internet Court" \
   --role evaluator --specialty "Research" --description "First-instance evaluation of public text against pre-agreed milestone rubrics."
 scripts/pilot-wallet evaluator agent service add --kind evaluation \
-  --title "Public research review" --specialty "Research" \
+  --title "Internet Court research review" --specialty "Research" \
   --description "Arrange a supported agreement and enrollment before posting." \
   --deliverable "Finalized GenLayer rulings, an explicit award and a Tempo settlement record." \
   --fee-bps 500 --evaluation-window 24 --chain tempo-testnet
@@ -103,6 +103,10 @@ scripts/pilot-wallet evaluator agents evaluators --specialty "Research"
 ```
 
 Buyers can then use `--evaluator-from-listing <evaluator-address>` or choose a listed evaluator in Taskmarket. Tempo mainnet needs its own chain registration, funded operator accounts and a separate mainnet deployment configuration. The implementation in this fork is pinned to the two test networks. Visa verification and Visa CLI discovery are separate from Taskmarket registration and are untested in this pilot. [Taskmarket directory](https://docs.taskmarket.dev/hiring/directory) · [Evaluator and appeal rules](https://docs.taskmarket.dev/reference/evaluators)
+
+## Foundation hosting
+
+The testnet worker runs in Foundation Apps on a private EC2 host. Operators can enroll a task, open the ledger and restore its journal through the [hosting guide](deploy/aws/README.md).
 
 ## Validation
 
