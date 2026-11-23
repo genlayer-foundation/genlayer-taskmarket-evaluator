@@ -101,33 +101,40 @@ def backup(database, bucket, root, filename_in_bucket):
 def receipt_feed(database, chain=42431):
     # The live worker only marks a job settled after matching its Tempo transfer.
     # Project individual public fields. Journal records can contain signed bytes.
+    journal_chain = database.execute("PRAGMA application_id").fetchone()[0]
+    network = "tempo-mainnet" if chain == 4217 else "tempo-testnet"
     rows = database.execute("""
         SELECT record FROM jobs
         WHERE json_extract(record, '$.scenario') IS NULL
-          AND json_extract(record, '$.evidence.chainId') = ?
+          AND (json_extract(record, '$.evidence.chainId') = ?
+               OR (json_extract(record, '$.evidence') IS NULL AND ? = ?
+                   AND COALESCE(json_extract(record, '$.agreement.settlementNetwork'), ?) = ?))
         ORDER BY json_extract(record, '$.updated') DESC, id
-    """, (chain,))
-    evaluations, unsettled = [], []
+    """, (chain, journal_chain, chain, network, network))
+    evaluations, unsettled, in_progress = [], [], []
     for (record,) in rows:
         job = json.loads(record)
         milestones = {m["id"]: m for m in job["agreement"]["milestones"]}
         judgments = job.get("judgments", [])
         # The signer persists a result only after verifying the finalized contract and its inputs.
-        if (not judgments or len(judgments) != len(milestones) or {j["milestone"] for j in judgments} != milestones.keys() or
-                not all(j.get("tx") and j.get("result") for j in judgments)):
-            continue
         row = {
-            "venue": "taskmarket", "network": "tempo-mainnet" if chain == 4217 else "tempo-testnet",
+            "venue": "taskmarket", "network": network,
             "rulingNetwork": "bradbury-testnet", "id": job["id"],
             "brief": job["agreement"]["brief"],
-            "rulings": [{
-                "milestone": j["milestone"], "tx": j["tx"],
-                "rubric": milestones[j["milestone"]]["rubric"],
-                "priceUnits": milestones[j["milestone"]]["awardUnits"],
-                "result": j["result"]["verdict"], "reason": j["result"]["reasoning"],
-            } for j in judgments],
+            "rulings": [],
         }
-        if job["phase"] == "settled":
+        by_milestone = {j["milestone"]: j for j in judgments}
+        for key, terms in milestones.items():
+            j = by_milestone.get(key, {})
+            ruling = {"milestone": key, "rubric": terms["rubric"], "priceUnits": terms["awardUnits"]}
+            if j.get("tx"):
+                ruling["tx"] = j["tx"]
+                if j.get("result"):
+                    ruling.update(result=j["result"]["verdict"], reason=j["result"]["reasoning"])
+            row["rulings"].append(ruling)
+        if not row["rulings"] or not all("result" in ruling for ruling in row["rulings"]):
+            in_progress.append(dict(row, phase=job["phase"], updatedAt=job["updated"], rewardUnits=job["agreement"]["rewardUnits"]))
+        elif job["phase"] == "settled":
             receipt = job["settlement"]
             evaluations.append(dict(row, completedAt=job["updated"], verdict=job["decision"]["verdict"],
                                     settlementKind=receipt["kind"], amountUnits=receipt["units"], settlementTx=receipt["tx"]))
@@ -136,13 +143,15 @@ def receipt_feed(database, chain=42431):
             if verdict is None:
                 verdict = "needs_review" if any(j["result"]["verdict"] == "needs_review" for j in judgments) else "finalized"
             unsettled.append(dict(row, updatedAt=job["updated"], verdict=verdict, rewardUnits=job["agreement"]["rewardUnits"]))
-    return {"version": 1, "evaluations": evaluations, "unsettled": unsettled}
+    return {"version": 1, "evaluations": evaluations, "unsettled": unsettled, "inProgress": in_progress}
 
 
-def publish_receipts(evaluations, bucket, unsettled=()):
+def publish_receipts(evaluations, bucket, unsettled=(), in_progress=()):
     evaluations.sort(key=lambda row: (row["completedAt"], row["network"], row["id"]), reverse=True)
     unsettled = sorted(unsettled, key=lambda row: (row["updatedAt"], row["network"], row["id"]), reverse=True)
-    payload = json.dumps({"version": 1, "evaluations": evaluations, "unsettled": unsettled}, ensure_ascii=False, separators=(",", ":")).encode()
+    active = sorted(in_progress, key=lambda row: (row["updatedAt"], row["network"], row["id"]), reverse=True)
+    payload = json.dumps({"version": 1, "evaluations": evaluations, "unsettled": unsettled, "inProgress": active},
+                         ensure_ascii=False, separators=(",", ":")).encode()
     digest = hashlib.sha256(payload).hexdigest()
     marker = ROOT / "last-published-receipts"
     stamp = bucket + "/" + digest
@@ -195,7 +204,7 @@ def monitor(bucket):
         deployments = [(ROOT, 42431, "journal.sqlite", "", 4732)]
         if os.environ.get("MONITOR_MAINNET") == "1":
             deployments.append((ROOT / "mainnet", 4217, "mainnet.sqlite", "-mainnet", 4733))
-        evaluations, unsettled = [], []
+        evaluations, unsettled, in_progress = [], [], []
         services_healthy = True
         for root, chain, object_name, suffix, port in deployments:
             db = sqlite3.connect((root / "state/taskmarket.sqlite").as_uri() + "?mode=ro", uri=True)
@@ -207,13 +216,14 @@ def monitor(bucket):
                 feed = receipt_feed(db, chain)
                 evaluations.extend(feed["evaluations"])
                 unsettled.extend(feed["unsettled"])
+                in_progress.extend(feed["inProgress"])
             finally:
                 db.close()
             processes = command("docker", "inspect", "--format", "{{.State.Running}}",
                                 "taskmarket-worker" + suffix, "taskmarket-ledger" + suffix).splitlines()
             with urllib.request.urlopen(f"http://127.0.0.1:{port}/evaluations", timeout=5) as response:
                 services_healthy &= processes == ["true", "true"] and response.status == 200 and worker_has_lock(root)
-        publish_receipts(evaluations, os.environ["RECEIPTS_BUCKET"], unsettled)
+        publish_receipts(evaluations, os.environ["RECEIPTS_BUCKET"], unsettled, in_progress)
         healthy = int(services_healthy)
     finally:
         metrics = [{"MetricName": name, "Value": value, "Unit": "Count",

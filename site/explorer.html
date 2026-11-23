@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f4ec">
   <title>Evaluation explorer | Internet Court × Taskmarket</title>
-  <meta name="description" content="Explore finalized jury rulings for Taskmarket jobs on Tempo mainnet and testnet, including cases awaiting settlement.">
+  <meta name="description" content="Follow Internet Court’s AI jury as it evaluates Taskmarket jobs. Read provisional decisions, finalized rulings and the reasons behind them.">
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/site.css">
   <link rel="stylesheet" href="/assets/explorer.css">
-  <script src="/assets/explorer.js" defer></script>
+  <script src="/assets/explorer.mjs" type="module"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to evaluations</a>
@@ -21,17 +21,17 @@
     <div class="archive-intro">
       <p class="kicker">Court records · Taskmarket</p>
       <h1>Evaluation explorer</h1>
-      <p>Read the jury’s finalized rulings on GenLayer Bradbury testnet. Each case shows the agreed reward and, once verified, the payment or refund on Tempo.</p>
+      <p>Follow each case from enrollment to a final ruling. See what Internet Court’s AI jury decided on GenLayer Bradbury testnet and why.</p>
     </div>
     <form id="filters" class="filters" role="search" action="/explorer">
       <label>Search records<input type="search" name="q" placeholder="Brief, milestone or task ID"></label>
       <label>Venue<select name="venue"><option value="">All venues</option><option value="taskmarket">Taskmarket</option></select></label>
       <label>Payment network<select name="network"><option value="">Both networks</option><option value="tempo-mainnet">Tempo mainnet</option><option value="tempo-testnet">Tempo testnet</option></select></label>
-      <label>Decision<select name="verdict"><option value="">All decisions</option><option value="approve">Approved</option><option value="partial">Partial award</option><option value="reject">Rejected</option><option value="needs_review">Needs review</option><option value="finalized">Jury rulings finalized</option></select></label>
+      <label>Jury status<select name="verdict"><option value="">All cases</option><option value="in_progress">In progress</option><option value="enrolled">Awaiting submission</option><option value="submitted">Awaiting jury</option><option value="judging">Jury deliberating</option><option value="provisional">Provisional decision</option><option value="appeal">Appeal in progress</option><option value="paused">Evaluation paused</option><option value="approve">Approved</option><option value="partial">Partial award</option><option value="reject">Rejected</option><option value="needs_review">Sent for review</option><option value="finalized">Jury rulings finalized</option><option value="error">Ruling error</option></select></label>
       <button type="submit" class="button">Search</button>
     </form>
     <div class="archive-meta"><p id="status" role="status">Loading court records…</p><a href="/explorer" id="clear" hidden>Clear filters</a></div>
-    <noscript>This explorer uses JavaScript to search and display receipts. <a href="/completed.json">Read the public records as JSON.</a></noscript>
+    <noscript>This explorer uses JavaScript to display live jury updates. <a href="/completed.json">Read the public case index.</a></noscript>
     <div id="records"></div>
     <button class="button" type="button" id="retry" hidden>Retry loading records</button>
   </main>

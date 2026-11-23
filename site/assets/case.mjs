@@ -1,4 +1,4 @@
-"use strict";
+import {finalOutcome, juryLabels, juryStage, milestoneLabel} from "./jury.mjs";
 const query = new URLSearchParams(location.search);
 const network = query.get("network"), task = query.get("task");
 const validId = value => /^0x[a-f0-9]{64}$/.test(value || "");
@@ -9,19 +9,20 @@ function el(tag, text) { const node = document.createElement(tag); node.textCont
 function link(label, url) { const a = el("a", label); a.href = url; a.className = "text-link"; return a; }
 let last = "", stopped = false, connected = false;
 function render(data) {
-  const labels = {evaluating:"Judging in progress", ready:"Jury review complete", appealing:"Taskmarket appeal window", settled:"Payment settled", disputed:"Taskmarket dispute", review:"Operator review"};
-  statusLine.textContent = (labels[data.phase] || "Enrolled") + " · " + (network === "tempo-mainnet" ? "Real OUSD on Tempo mainnet" : "Test OUSD on Tempo testnet");
+  const outcome = finalOutcome(data.milestones);
+  statusLine.textContent = outcome ? "Final jury decision · " + juryLabels[outcome] : juryLabels[juryStage(data.phase, data.milestones)];
   const content = JSON.stringify(data);
   if (content === last) return;
   last = content;
   list.replaceChildren();
   for (const m of data.milestones) {
     const card = el("article", ""); card.className = "live-milestone";
-    card.append(el("h2",m.milestone), el("p",m.status === "Accepted" && m.decision ? "Provisional decision" : m.status));
+    card.append(el("h2",milestoneLabel(m)), el("p",m.milestone));
+    if (m.result && (m.status === "Finalized" || (m.status === "Accepted" && m.decision)))
+      card.append(el("h3","Jury reasoning"),el("p",m.result.reasoning));
     if (validId(m.tx)) {
       card.append(link("Inspect the Bradbury ruling", "https://scan.bradbury.genlayer.com/tx/" + m.tx), el("code",m.tx));
     }
-    if (m.result) card.append(el("h3",m.result.verdict),el("p",m.result.reasoning));
     if (m.decision && Number.isSafeInteger(m.deadline) && validId(m.tx)) {
       const epoch = m.deadline * 1000;
       card.append(el("p","Decision " + m.decision + " · Appeal deadline " + new Date(epoch).toISOString().replace("T"," ").replace(".000Z"," UTC")));

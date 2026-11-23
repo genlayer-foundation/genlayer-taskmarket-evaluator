@@ -91,3 +91,40 @@ class PublicReceiptsTest(unittest.TestCase):
         settled = host.receipt_feed(self.db, 4217)
         self.assertEqual(settled["unsettled"], [])
         self.assertEqual(len(settled["evaluations"]), 1)
+
+    def test_enrollment_without_evidence_uses_bound_journal_and_excludes_simulations(self):
+        self.db.execute("PRAGMA application_id=42431")
+        job = {k: self.job[k] for k in ("id", "agreement", "updated")}
+        job.update(phase="tracked", judgments=[])
+        self.save("enrolled", job)
+        self.save("demo", {**job, "scenario": "approval"})
+        self.save("wrong-terms", {**job, "agreement": {**job["agreement"], "settlementNetwork": "tempo-mainnet"}})
+        feed = host.receipt_feed(self.db)
+        row, = feed["inProgress"]
+        self.assertEqual((row["network"], row["phase"]), ("tempo-testnet", "tracked"))
+        self.assertNotIn("verdict", row)
+        self.assertNotIn("tx", row["rulings"][0])
+        self.assertEqual(feed["evaluations"] + feed["unsettled"], [])
+        self.assertEqual(host.receipt_feed(self.db, 4217)["inProgress"], [])
+
+    def test_partial_milestones_remain_in_progress_until_all_are_final(self):
+        job = copy.deepcopy(self.job)
+        job["phase"] = "evaluating"
+        job.pop("settlement")
+        job.pop("decision")
+        terms = {**job["agreement"]["milestones"][0], "id": "report"}
+        job["agreement"]["milestones"].append(terms)
+        job["judgments"].append({"milestone": "report", "tx": "0x" + "a" * 64, "signed": "secret-bytes"})
+        self.save("partial", job)
+        feed = host.receipt_feed(self.db)
+        self.assertEqual(feed["unsettled"] + feed["evaluations"], [])
+        first, second = feed["inProgress"][0]["rulings"]
+        self.assertEqual(first["result"], "approve")
+        self.assertIn("tx", second)
+        self.assertNotIn("result", second)
+        self.assertNotIn("secret-bytes", json.dumps(feed))
+        job["judgments"][1]["result"] = job["judgments"][0]["result"]
+        self.db.execute("UPDATE jobs SET record=?", (json.dumps(job),))
+        feed = host.receipt_feed(self.db)
+        self.assertEqual(feed["inProgress"], [])
+        self.assertEqual(len(feed["unsettled"]), 1)

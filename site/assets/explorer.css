@@ -13,7 +13,10 @@
 .case-meta {font: .82rem/1.4 var(--mono); color: var(--muted)}
 .case-meta strong {color: var(--red)}
 .case h2 {font: 500 clamp(1.5rem,3vw,2.4rem)/1.18 var(--serif); margin: 1.1rem 0; max-width: 54rem; letter-spacing: -.02em}
-.transfer {font: 500 1.1rem/1.45 var(--sans)}
+.case-brief {font: 500 1.1rem/1.45 var(--sans);max-width:65ch}
+.reasons {border-left:2px solid var(--red);padding-left:1.1rem;margin-top:1.3rem}
+.reasons h3 {font:500 .85rem/1.45 var(--mono);color:var(--muted)}
+.reasons p {line-height:1.55;max-width:72ch;margin:.4rem 0 1rem}
 .case-links {row-gap:.55rem; font-size:.95rem; margin:1.2rem 0}
 .archive a:not(.button) {color:var(--red); text-decoration:underline; text-underline-offset:.2em}
 .case details {margin-top: 1.4rem; padding-top: 1rem; border-top:1px solid var(--line)}
