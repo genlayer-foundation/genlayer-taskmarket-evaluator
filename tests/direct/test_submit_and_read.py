@@ -2,11 +2,13 @@
 
 import json
 
+from .conftest import model_reply
+
 
 def _mock_eval(vm, verdict="approve", score=85, confidence=90):
     vm.mock_llm(
         r".*evaluating a provider submission.*",
-        json.dumps({
+        model_reply({
             "verdict": verdict,
             "score": score,
             "confidence": confidence,
@@ -73,3 +75,11 @@ def test_metadata_passthrough(direct_vm, direct_deploy):
 
 # NOTE: deploy isolation is tested in integration tests (tests/integration/)
 # Direct mode only allows one contract deploy per test due to GenLayer SDK restriction.
+
+
+def test_out_of_range_result_withholds_verdict(direct_vm, direct_deploy):
+    _mock_eval(direct_vm, score=101)
+    contract = direct_deploy("contracts/acp_evaluator.py", "spec", "work", "rubric", "{}")
+    result = contract.get_result()
+    assert result["success"] is False
+    assert result["verdict"] == "error"

@@ -5,3 +5,6 @@ dist/
 artifacts/
 .pytest_cache/
 __pycache__/
+
+# Operator journals, including pending signed transactions
+data/

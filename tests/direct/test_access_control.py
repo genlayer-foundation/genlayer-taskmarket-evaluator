@@ -2,11 +2,13 @@
 
 import json
 
+from .conftest import model_reply
+
 
 def test_deploy_stores_result(direct_vm, direct_deploy):
     direct_vm.mock_llm(
         r".*evaluating a provider submission.*",
-        json.dumps({
+        model_reply({
             "verdict": "approve",
             "score": 85,
             "confidence": 90,
@@ -32,7 +34,7 @@ def test_deploy_stores_result(direct_vm, direct_deploy):
 def test_deploy_stores_input(direct_vm, direct_deploy):
     direct_vm.mock_llm(
         r".*evaluating a provider submission.*",
-        json.dumps({
+        model_reply({
             "verdict": "reject",
             "score": 20,
             "confidence": 95,
@@ -54,7 +56,7 @@ def test_deploy_stores_input(direct_vm, direct_deploy):
 def test_rubric_version_from_metadata(direct_vm, direct_deploy):
     direct_vm.mock_llm(
         r".*evaluating a provider submission.*",
-        json.dumps({
+        model_reply({
             "verdict": "approve",
             "score": 80,
             "confidence": 80,
@@ -73,7 +75,7 @@ def test_rubric_version_from_metadata(direct_vm, direct_deploy):
 def test_default_rubric_version(direct_vm, direct_deploy):
     direct_vm.mock_llm(
         r".*evaluating a provider submission.*",
-        json.dumps({
+        model_reply({
             "verdict": "approve",
             "score": 80,
             "confidence": 80,

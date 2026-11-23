@@ -5,6 +5,7 @@ export default defineConfig({
     exclude: [
       "tests/integration/**",
       "node_modules/**",
+      "dist/**",
       "dashboard/**",
     ],
   },

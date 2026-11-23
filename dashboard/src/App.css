@@ -891,3 +891,35 @@ body::before {
     transform: rotate(90deg);
   }
 }
+
+.tm-main { padding-bottom: 5rem; }
+.tm-layout { display: grid; grid-template-columns: minmax(210px, .8fr) minmax(0, 2fr); gap: 1.5rem; align-items: start; }
+.tm-layout aside, .tm-detail { background: var(--bg-surface); border: 1px solid var(--border-hover); border-radius: var(--radius); padding: 1.35rem; min-width: 0; }
+.tm-layout h2 { font: 700 1.45rem var(--font-display); }
+.tm-layout aside h2 { margin-bottom: 1rem; }
+.tm-layout aside h2 small { color: var(--text-2); font: .9rem var(--font-mono); }
+.tm-row { display: grid; gap: .15rem; padding: .85rem; border-radius: .4rem; text-decoration: none; color: var(--text-1); }
+.tm-row.chosen { background: var(--accent-subtle); box-shadow: inset 3px 0 var(--accent); }
+.tm-row:hover { background: var(--bg-hover); }
+.tm-row span, .tm-row code, .tm-detail small, .tm-label { color: var(--text-2); font-size: .8rem; }
+.tm-detail header, .tm-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; }
+.tm-detail p { margin: .75rem 0; }
+.tm-detail h3 { margin: 1.5rem 0 .6rem; }
+.tm-status { color: var(--accent); font: .78rem var(--font-mono); }
+.tm-finance { display: grid; grid-template-columns: repeat(3,1fr); gap: .7rem; padding: 1rem 0; border-block: 1px solid var(--border); }
+.tm-finance small, .tm-finance b { display: block; }
+.tm-finance b { font-size: 1.15rem; }
+.tm-milestone { border-top: 1px solid var(--border); padding: .75rem 0; }
+.tm-milestone p { color: var(--text-2); }
+.tm-detail dl { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(0, 2.4fr); gap: .5rem; }
+.tm-detail dt { color: var(--text-2); }
+.tm-detail code, .tm-detail pre { overflow-wrap: anywhere; white-space: pre-wrap; font-family: var(--font-mono); font-size: .8rem; }
+.tm-detail details { margin: 1rem 0; }
+.tm-detail summary { cursor: pointer; }
+.tm-detail a { color: var(--accent); }
+.tm-json { display: inline-block; margin-top: .7rem; }
+.tm-controls { justify-content: flex-start; margin-bottom: 1.3rem; }
+.tm-controls select,.tm-controls button { font: inherit; padding: .45rem .8rem; border-radius: .4rem; border: 1px solid var(--border-hover); background: var(--bg-elevated); color: var(--text-1); }
+.tm-controls button { background: var(--accent); color: var(--bg-deep); font-weight: 700; cursor: pointer; }
+.tm-alert { color: var(--review); }
+@media(max-width: 720px) { .tm-layout {grid-template-columns:1fr;} .tm-layout aside {max-height:280px;overflow:auto;} .tm-main {padding-inline:1rem;} .tm-finance {grid-template-columns:1fr 1fr;} .nav {padding-inline:1rem;} }

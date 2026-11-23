@@ -8,3 +8,9 @@ def to_hex(addr_bytes):
     from genlayer.py.types import Address
 
     return Address(addr_bytes).as_hex
+
+
+def model_reply(payload):
+    """The direct host unwraps JSON once, then the Phase 2 SDK parses the model text."""
+    import json
+    return json.dumps(json.dumps(payload))

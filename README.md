@@ -1,137 +1,112 @@
-# GenLayer ACP Evaluator
+# GenLayer evaluator for Taskmarket
 
-Onchain AI evaluation for [Virtuals ACP](https://app.virtuals.io/acp) jobs. Every evaluation runs through GenLayer's multi-LLM consensus — independent validators re-evaluate deliverables and must agree within configurable tolerance bands before a verdict is accepted. No single-model bias. Verifiable, immutable results stored on-chain.
+A requester names a Tempo evaluator wallet when opening a claim task. The worker submits public text artifacts. The evaluator verifies the submission, obtains a finalized GenLayer Bradbury ruling for each agreed milestone, and relays the award to Taskmarket. The ledger records the recipient and amount after verifying a successful settlement receipt and the OUSD transfer.
 
-## Why this exists
+## Run the local demo
 
-The evaluation logic lives in a GenLayer Intelligent Contract — code deployed onchain that cannot be altered after deployment. When a job comes in, GenLayer validators independently re-execute the evaluation using different LLMs on different infrastructure run by different operators. The verdict is the result of network consensus, not any single party's decision.
+Use Node 22.13 or newer. From the repository root run
 
-This means:
-
-- **Tamper-proof**: The evaluation logic is onchain. No one — including the operator — can override a verdict after deployment.
-- **Independently verified**: Multiple validators run the same evaluation with different models. They must agree within tolerance bands before a result is accepted.
-- **Fully auditable**: Every evaluation, every score, every validator vote is stored onchain and verifiable by anyone.
-
-With self-appeal, it goes further: the evaluator pays to challenge its own result, inviting even more validators to verify. An evaluator that is economically incentivized to prove itself wrong.
-
-## Evaluation tiers
-
-GenLayer's appeal mechanism enables tiered trust levels. Each appeal round brings in more validators, exponentially increasing confidence — and cost.
-
-| Tier | Strategy | Validators | Time | Price | Use case |
-|------|----------|-----------|------|-------|----------|
-| **Quick** | Return on ACCEPTED | ~5 | ~2 min | $0.10 | Low-stakes, speed matters |
-| **Standard** | ACCEPTED + 1 self-appeal | ~15 | ~10 min | ~$0.30 | Good confidence for most jobs |
-| **Adversarial** | Keep appealing until finalized | up to 1000 | ~40 min | $1-10+ | High-value, maximum trust |
-
-### How self-appeal works
-
-The evaluator can *proactively appeal its own result* to force additional validator rounds. This is unique — the evaluator pays to try to prove itself wrong:
-
-- **Failed appeal** (validators agree with original verdict) → verdict gets *stronger*, appeal window shrinks. Cost: appeal fee.
-- **Successful appeal** (validators disagree) → verdict was wrong, caught before returning to buyer. Cost: appeal fee, but prevented a bad evaluation.
-
-Each appeal round roughly doubles the validator count. The cost grows exponentially, but so does certainty. A buyer picks their trust level, and the price reflects actual consensus resources consumed — not arbitrary markup.
-
-**v1 ships with the Quick tier.** Standard and Adversarial tiers are protocol-ready (the contract and appeal mechanism already exist) and will be added as separate offerings.
-
-## Architecture
-
-```
-ACP v2 SSE → job.submitted entry
-  → Express service deploys a fresh GenLayer contract
-  → Constructor runs LLM evaluation during deployment
-  → Leader evaluates + validators re-evaluate (equivalence principle)
-  → Consensus reached → result stored immutably at contract address
-  → session.complete(txHash) / session.reject(txHash) → returned to ACP
-  → Dashboard shows result at /#/job/<id>
+```sh
+npm ci
+npm --prefix dashboard ci
+npm run demo
 ```
 
-Each evaluation deploys its own contract — one contract, one evaluation, one address. No shared state, no queue contention. If an appeal is filed on one evaluation, it doesn't affect any other.
+Open [the local ledger](http://127.0.0.1:4731). The demo seeds approval, rejection, a 30-of-50 OUSD award, and recovery after a lost verdict response. Choose **Needs review** to see the evaluator withhold a verdict. Example judgments and receipts are simulated. The demo uses the same award calculation, journal and settlement state machine as the live worker.
 
-Single container serves everything: Express API, ACP v2 SSE listener, and the dashboard static build.
+## Run a job by address on the test networks
 
-## How the contract works
+1. Create independent Taskmarket identities for the requester, worker and evaluator. Each command stores its wallet and device credentials under its own directory in `data/pilot/`. The CLI prompts if the selected network requires legal acceptance.
 
-The GenLayer Intelligent Contract (`contracts/acp_evaluator.py`) runs the entire evaluation in the constructor at deploy time:
+   ```sh
+   scripts/pilot-wallet evaluator init
+   scripts/pilot-wallet requester init
+   scripts/pilot-wallet worker init
+   npm run taskmarket:evaluator -- prepare-signer
+   ```
 
-1. Receives task spec, submission, rubric, and metadata as constructor arguments
-2. **Leader** generates an evaluation via LLM (verdict, score 0-100, confidence 0-100, reasoning)
-3. **Validators** independently generate their own evaluation
-4. Validators accept the leader's result only if:
-   - Same verdict band (approve ≥70, needs_review ≥40, reject <40)
-   - Score within configurable tolerance (default ±10)
-   - Confidence within configurable tolerance (default ±15)
-5. Result stored as contract state, readable via `get_result()`
-6. Constructor never reverts — on failure, stores `verdict: "error"` with the error message
+2. Fund the printed **Bradbury** address with 3 test GEN for the one-milestone pilot. The GEN covers the consensus deposit and transaction fee. The requester needs 1 test OUSD for escrow, and each Tempo wallet should have test OUSD for action fees. With Foundry installed, obtain Tempo test funds for each public wallet from its faucet. Repeat the address lookup, faucet request and balance check for each role.
 
-The contract is immutable after deployment. No write methods, no admin functions, no way to alter the verdict.
+   ```sh
+   scripts/pilot-wallet requester address
+   cast rpc tempo_fundAddress <public-Tempo-address> --rpc-url https://rpc.moderato.tempo.xyz
+   scripts/pilot-wallet requester wallet balance
+   npm run taskmarket:evaluator -- preflight
+   ```
 
-## Setup
+   Preflight checks Tempo Moderato chain 42431, Taskmarket revision 31, its token and evaluator functions, and the Bradbury Phase 2 genesis, consensus contract, contract schema and fee quote. The official Bradbury faucet has owner eligibility requirements. Test GEN can also come from an existing Bradbury test wallet. [Bradbury faucet](https://testnet-faucet.genlayer.foundation/) · [Taskmarket network identity](https://docs.taskmarket.dev/identity/agent-registration)
 
-### Prerequisites
+3. Run the first job. This command makes public testnet writes and spends the fixed 1 test OUSD escrow when the Bradbury deposit is covered.
 
-- Node 20+
-- Python 3.12+
-- GenLayer environment (Studio / testnet)
-- Registered ACP agent at https://app.virtuals.io/acp/new (Role: Evaluator)
+   ```sh
+   npm run taskmarket:evaluator -- pilot
+   ```
 
-### 1. Register on ACP
+   The command reserves a public claim for the pilot worker, assigns the evaluator **by wallet address**, posts the exact [agreement](examples/taskmarket/fixed.json), and uploads the [worker's guide](examples/taskmarket/submission.md). It allows 24 hours for evaluation and uses the onchain minimum Taskmarket appeal window (five minutes on the verified deployment). It prints the task ID at creation and the verified record on settlement. Rerun the command in the same checkout after an interruption to resume the same job. The evaluator's fee is 0.05 test OUSD. A passing guide earns 0.95. A rejection refunds 0.95 to the requester. Test wallets are operated by the same pilot operator.
 
-At https://app.virtuals.io/acp/new:
-- Role: **Evaluator**
-- Add offering: name, price ($0.10), SLA (10 min)
-- Note your Agent Wallet Address, Wallet ID, and Signer Private Key
+4. Open the live ledger in another terminal.
 
-### 2. Configure and run
+   ```sh
+   npm run build
+   npm --prefix dashboard run build
+   npm start
+   ```
 
-```bash
-npm install
-cp .env.example .env
-# Fill in: GENLAYER_PRIVATE_KEY,
-#          ACP_AGENT_WALLET_ADDRESS, ACP_WALLET_ID, ACP_SIGNER_PRIVATE_KEY
-npm run dev
+   Open [the testnet ledger](http://127.0.0.1:3000). Each job has a JSON record at `/evaluations/<task-id>`. Demo and testnet use separate databases.
+
+## Evaluate a buyer's task
+
+The buyer puts the complete agreed JSON in the task description. The service supports public single-worker claim tasks with zero platform fee, no stake, and no award-transforming hook. It accepts UTF-8 plain text, Markdown, CSV and JSON, up to 48 KiB per submission. Each milestone has a price in millionths of OUSD. The prices together equal escrow less the evaluator fee. The [research agreement](examples/taskmarket/research.json) prices the comparison at 30 and the reproducible procedures at 20, with a zero fee.
+
+Enroll an agreed task explicitly and run one worker per journal.
+
+```sh
+npm run taskmarket:evaluator -- track <task-id> examples/taskmarket/fixed.json
+npm run taskmarket:evaluator -- work
+npm run taskmarket:evaluator -- show <task-id>
 ```
 
-The service starts Express on `:3000` (API + dashboard) and connects to ACP via the v2 SSE stream.
+For recurring buyers, set `TASKMARKET_ACCEPT_BRIEF` to the agreed JSON path and `TASKMARKET_ACCEPT_REQUESTERS` to the comma-separated approved buyer addresses before starting `work`. The worker reads the evaluator's public Taskmarket inbox, enrolls matching assignments and verifies their terms on both the public API and Tempo. Other buyers can arrange enrollment by task ID. `once` advances the existing journal once.
 
-### 3. Deploy with Docker
+### What the receipt proves
 
-```bash
-docker build -t genlayer-acp-evaluator .
-# Push to registry, deploy with env vars
+- The evidence record binds the Tempo chain, marketplace contract, task, requester, worker, submission event, exact manifest bytes, and hashes of the public artifacts. Each Bradbury contract records its inputs and ruling. Only a successful finalized deployment whose stored inputs match can contribute to an award.
+- A milestone receives its full agreed amount on approval and zero on rejection. A score of 40–69 or an unsuccessful judgment withholds the verdict for operator review. A temporary outage leaves the work eligible for retry. An expired evaluation returns to Taskmarket's timeout process.
+- The operator-controlled evaluator wallet relays the verdict. The evidence hash commits to the inputs, rulings and award. Today buyers trust that operator to relay faithfully. A pending Taskmarket appeal passes to the assigned resolver. Only an eligible worker can appeal, and only when the requester named a resolver. The fixed pilot leaves the resolver unset.
+- The ledger marks a job settled after finding both its marketplace completion or cancellation event and the matching OUSD transfer from escrow. A finalized GenLayer ruling or an issued verdict alone leaves the payment pending.
+- The SQLite journal saves signed Bradbury transactions before broadcast and uses stable Taskmarket write keys. Keep `data/` private and on persistent storage. Stop the worker and ledger before copying the directory as a backup. It contains wallet credentials, recoverable signed transactions and the journal.
+
+### A future permissionless relay
+
+Bradbury finality and Taskmarket settlement have independent clocks. A future cross-chain adapter could accept an authenticated message containing the finalized ruling, task ID, evidence hash, worker and award. A sender on the GenLayer side must attest finality, and the Tempo receiver must bind the message to the agreed task and consume it once. Hyperlane can transport that message with a configured route and security module. Taskmarket revision 31 restricts verdict submission to trusted forwarders and its V2 forwarder restricts the relayer. Removing the operator's discretion requires an authorized contract integration with Taskmarket or a different escrow that accepts such proofs. [Hyperlane Mailbox](https://docs.hyperlane.xyz/docs/protocol/core/mailbox) · [EvaluatorFacet](https://github.com/daydreamsai/taskmarket-contracts/blob/94d124c8051c593e5e40f872ad77de6149eb048b/evm/src/facets/EvaluatorFacet.sol#L113-L132) · [Forwarder](https://github.com/daydreamsai/taskmarket-contracts/blob/94d124c8051c593e5e40f872ad77de6149eb048b/evm/src/TaskMarketForwarderV2.sol#L131)
+
+## Publish an evaluator listing after a verified settlement
+
+The profile and service can be published directly through Taskmarket. Use the evaluator wallet that appeared on the successful job. Check existing services before adding one. A pilot listing can be limited to Tempo testnet.
+
+```sh
+scripts/pilot-wallet evaluator agent listing
+scripts/pilot-wallet evaluator agent profile set --name "GenLayer Evaluator" \
+  --role evaluator --specialty "Research" --description "First-instance evaluation of public text against pre-agreed milestone rubrics."
+scripts/pilot-wallet evaluator agent service add --kind evaluation \
+  --title "Public research review" --specialty "Research" \
+  --description "Arrange a supported agreement and enrollment before posting." \
+  --deliverable "Finalized GenLayer rulings, an explicit award and a Tempo settlement record." \
+  --fee-bps 500 --evaluation-window 24 --chain tempo-testnet
+scripts/pilot-wallet evaluator agents evaluators --specialty "Research"
 ```
 
-## Testing
+Buyers can then use `--evaluator-from-listing <evaluator-address>` or choose a listed evaluator in Taskmarket. Tempo mainnet needs its own chain registration, funded operator accounts and a separate mainnet deployment configuration. The implementation in this fork is pinned to the two test networks. Visa verification and Visa CLI discovery are separate from Taskmarket registration and are untested in this pilot. [Taskmarket directory](https://docs.taskmarket.dev/hiring/directory) · [Evaluator and appeal rules](https://docs.taskmarket.dev/reference/evaluators)
 
-```bash
-# Contract lint
-genvm-lint check contracts/acp_evaluator.py
+## Validation
 
-# Contract tests (direct mode, in-memory)
-gltest tests/direct/ -v -s
-
-# TypeScript tests
+```sh
+npm run build
 npm test
+npm --prefix dashboard run build
+python3 -m pip install -r requirements-test.txt
+GENVM_VERSION=v0.6.0-rc10 genvm-lint check contracts/acp_evaluator.py
+GENVM_VERSION=v0.6.0-rc10 gltest tests/direct/ -q
 ```
 
-## Dashboard
-
-Served from the same Express process. In development:
-
-```bash
-cd dashboard && npm install && npm run dev
-```
-
-Pages:
-- `/#/` — evaluation list with stats, score rings, verdict badges
-- `/#/job/<id>` — full job detail (task spec, submission, rubric, reasoning)
-- `/#/about` — how it works, architecture, tech stack
-
-## Tech stack
-
-- **GenLayer** — AI-native blockchain with multi-LLM consensus
-- **Virtuals ACP** — Agent Commerce Protocol (`@virtuals-protocol/acp-node-v2`)
-- **genlayer-js** — TypeScript SDK for GenLayer
-- **Express** — API + static dashboard server
-- **React + Vite** — dashboard frontend
+This project is a fork of the [Virtuals ACP evaluator](https://github.com/genlayerlabs/genlayer-acp-evaluator). Its original integration remains available through `npm run start:acp`.

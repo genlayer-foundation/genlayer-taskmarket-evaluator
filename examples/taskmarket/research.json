@@ -1,0 +1,20 @@
+{
+  "version": "genlayer-taskmarket/v1",
+  "brief": "Compare three agent marketplaces and supply independently reproducible public instructions for each. Submit the comparison, citations, relevant source excerpts and a reproduction transcript as public text artifacts. The gross escrow is 50 OUSD. The evaluator fee is zero for this demonstration.",
+  "rubricVersion": "research-v1",
+  "rewardUnits": "50000000",
+  "evaluatorFeeBps": 0,
+  "needsReview": "withhold-verdict",
+  "milestones": [
+    {
+      "id": "comparison",
+      "rubric": "Pass only if the submission compares three named marketplaces, cites a specific public source for each and backs each comparison with the submitted source evidence.",
+      "awardUnits": "30000000"
+    },
+    {
+      "id": "procedures",
+      "rubric": "Pass only if a stranger can follow one procedure for each marketplace using public inputs and the transcript supports each result. Any procedure requiring private credentials fails this milestone.",
+      "awardUnits": "20000000"
+    }
+  ]
+}

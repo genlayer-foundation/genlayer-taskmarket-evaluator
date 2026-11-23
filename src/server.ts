@@ -10,6 +10,7 @@ const app = express();
 app.use(express.json());
 
 const dashboardPath = path.resolve(import.meta.dirname, "../../dashboard/dist");
+app.get("/", (_req, res) => res.redirect("/acp-dashboard"));
 app.use(express.static(dashboardPath));
 
 function authOk(req: express.Request) {

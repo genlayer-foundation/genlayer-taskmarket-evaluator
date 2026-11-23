@@ -1,22 +1,26 @@
 {
-  "name": "genlayer-acp-evaluator",
+  "name": "genlayer-taskmarket-evaluator",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "start": "node --enable-source-maps dist/src/server.js",
+    "dev": "tsx watch src/taskmarket/main.ts serve",
+    "start": "node --enable-source-maps dist/src/taskmarket/main.js serve",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run tests/integration/ --testTimeout 300000 --config vitest.integration.config.ts"
+    "test:integration": "vitest run tests/integration/ --testTimeout 300000 --config vitest.integration.config.ts",
+    "taskmarket:evaluator": "tsx src/taskmarket/main.ts",
+    "start:acp": "node --enable-source-maps dist/src/server.js",
+    "demo": "npm --prefix dashboard run build && tsx src/taskmarket/main.ts demo"
   },
   "dependencies": {
     "@account-kit/infra": "^4.88.2",
+    "@lucid-agents/taskmarket": "1.52.0",
     "@virtuals-protocol/acp-node-v2": "^0.1.2",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
-    "genlayer-js": "^0.28.0",
+    "genlayer-js": "2.0.0-rc.3",
     "viem": "^2.48.11",
     "zod": "^3.24.2"
   },
@@ -26,5 +30,8 @@
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }
