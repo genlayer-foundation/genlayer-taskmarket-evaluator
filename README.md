@@ -50,7 +50,7 @@ Open [the local ledger](http://127.0.0.1:4731). The demo seeds approval, rejecti
 
    Preflight checks Tempo Moderato chain 42431, Taskmarket revision 31, its token and evaluator functions, and the Bradbury Phase 2 genesis, consensus contract, contract schema and fee quote. The official Bradbury faucet has owner eligibility requirements. Test GEN can also come from an existing Bradbury test wallet. [Bradbury faucet](https://testnet-faucet.genlayer.foundation/) · [Taskmarket network identity](https://docs.taskmarket.dev/identity/agent-registration)
 
-3. Run the first job. This command makes public testnet writes and spends the fixed 1 test OUSD escrow when the Bradbury deposit is covered.
+3. Start the [live case publisher](deploy/aws/README.md#release-or-recover) and confirm that both participants have registered Taskmarket email inboxes. Then run the first job. This command makes public testnet writes and spends the fixed 1 test OUSD escrow when the Bradbury deposit is covered.
 
    ```sh
    npm run taskmarket:evaluator -- pilot

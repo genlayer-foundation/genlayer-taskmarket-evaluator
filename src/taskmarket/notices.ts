@@ -7,7 +7,7 @@ import { observeRuling, provisionalReasons, publicRulingId, type LiveRuling } fr
 import { cli } from "./tempo.js";
 import type { Journal } from "./store.js";
 
-export const appealGuide = "Either party can ask a larger GenLayer jury to review a provisional ruling. Have a Bradbury wallet funded with test GEN before judging starts. The quote covers the bond and extra jury work. Allow for gas too. A failed appeal can cost you the bond. The appeal must reach the chain before its deadline. A Taskmarket appeal is separate.";
+const appealGuide = "Either party can ask a larger GenLayer jury to review a provisional ruling. Have a Bradbury wallet funded with test GEN before judging starts. The quote covers the bond and extra jury work. Allow for gas too. A failed appeal can cost you the bond. The appeal must reach the chain before its deadline. A Taskmarket appeal is separate.";
 export type CaseMilestone = LiveRuling & { milestone: string; tx?: Hash };
 export type LiveCase = { id: Hash; network: string; phase: string; milestones: CaseMilestone[] };
 type IO = {
@@ -92,7 +92,8 @@ export class CaseNotices {
     if (j.result && previous?.status === "Finalized" && previous.result) return previous;
     const observation = await this.io.observe(tx).catch(() => undefined);
     if (!observation) return { milestone: j.milestone, tx, status: "Checking Bradbury" };
-    const result = observation.decision && this.reasons.get(tx + ":" + observation.decision);
+    const result = observation.decision && (this.reasons.get(tx + ":" + observation.decision) ??
+      (previous?.tx === tx && previous.decision === observation.decision && previous.status === observation.status ? previous.result : undefined));
     const ruling = j.result ?? result;
     return { milestone: j.milestone, tx, ...observation,
       ...(ruling ? { result: { verdict: ruling.verdict, reasoning: ruling.reasoning.slice(0,6000) } } : {}) };
@@ -108,7 +109,13 @@ export class CaseNotices {
     if (job.scenario || !job.evidence) return;
     const saved = this.journal.db.prepare("SELECT body FROM live_cases WHERE task=?").get(job.id);
     const previous: LiveCase | undefined = saved ? JSON.parse(String(saved.body)) : undefined;
-    if (["settled","disputed","review"].includes(job.phase) && (!previous || previous.phase === job.phase)) return;
+    if (["settled","disputed","review"].includes(job.phase)) {
+      if (!previous) return;
+      const recipients = [job.evidence.requester, job.evidence.worker];
+      const complete = previous.milestones.every(m => !m.tx || m.status === "Canceled" ||
+        (m.status === "Finalized" && (!m.result || recipients.every(w => this.delivered(job.id,"final:" + m.tx,w)))));
+      if (previous.phase === job.phase && complete) return;
+    }
     const milestones = await Promise.all(job.judgments.map(j => this.milestone(job,j,previous?.milestones.find(m => m.milestone === j.milestone))));
     const record: LiveCase = { id: job.id, network: settlementNetwork, phase: job.phase, milestones };
     const body = JSON.stringify(record);
@@ -116,7 +123,6 @@ export class CaseNotices {
       await this.io.publish(record);
       this.journal.db.prepare("INSERT OR REPLACE INTO live_cases VALUES(?,?)").run(job.id,body);
     }
-    if (job.phase === "settled" && !previous) return;
     const link = this.io.base + "/case?network=" + settlementNetwork + "&task=" + job.id;
     const ref = "\n\nLive case: " + link;
     const tag = "Internet Court · ";
@@ -129,7 +135,7 @@ export class CaseNotices {
           "GenLayer finalized the ruling. The GenLayer appeal window is closed. Ruling: " + m.result.verdict + " — " + m.result.reasoning.slice(0,3000) + details);
       } else if (m.decision && m.deadline && this.io.now() < m.deadline * 1000) {
         const info = m.result ? m.result.verdict + " — " + m.result.reasoning.slice(0,3000) : m.status + ". See the live case for the jury’s reasons as they arrive.";
-        this.mail(job, "decision:" + m.tx + ":" + m.decision + (m.result ? ":reasons" : ""), tag + "provisional decision on " + m.milestone,
+        this.mail(job, "decision:" + m.tx + ":" + m.decision + (m.result ? ":reasons" : ""), tag + (m.result ? "jury reasons for " : "appeal window open for ") + m.milestone,
           "Provisional ruling: " + info + "\nAppeal deadline: " + new Date(m.deadline*1000).toISOString() + " (UTC). " + appealGuide + details, m.deadline);
       } else if (!m.decision && ["Pending","Proposing","Committing","Revealing","Leader revealing","Checking Bradbury"].includes(m.status)) {
         this.mail(job,"ruling:" + m.tx,tag + "jury transaction available", "Your jury transaction is public. Watch the case for its decision and appeal deadline." + details);

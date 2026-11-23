@@ -49,7 +49,8 @@ async function refresh() {
     if (!response.ok) throw Error();
     const data = await response.json();
     if (data.id !== task || data.network !== network || !Array.isArray(data.milestones)) throw Error();
-    connected = true; render(data); stopped = ["settled","disputed","review"].includes(data.phase);
+    connected = true; render(data);
+    stopped = ["settled","disputed","review"].includes(data.phase) && data.milestones.every(m => !m.tx || ["Finalized","Canceled"].includes(m.status));
   } catch {
     connected = false;
     statusLine.textContent = last ? "Live updates interrupted. Check the linked Bradbury transaction for the current decision." : "Case data unavailable. Retrying…";

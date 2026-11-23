@@ -108,6 +108,9 @@ async function main() {
     const key = hash.parse(process.env.GENLAYER_PRIVATE_KEY ?? readFileSync(keyFile, "utf8").trim());
     if (command === "pilot") process.env.TASKMARKET_HOME = resolve("data/pilot/evaluator");
     const wallet = await tempo.wallet();
+    if (command === "pilot" && !existsSync(process.env.TASKMARKET_PUBLISH_SOCKET ?? "/run/taskmarket-live/publish.sock")) {
+      throw new Error("Start the live case publisher before posting a pilot task. See deploy/aws/README.md for the local publisher command.");
+    }
     const pilotId =
       command === "pilot" ? await preparePilot(db, privateKeyToAccount(key).address) : undefined;
     const judge = await bradbury(key);
