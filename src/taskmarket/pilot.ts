@@ -8,6 +8,7 @@ import { cli, state, wallet, minimumAppealSeconds } from "./tempo.js";
 import { Journal } from "./store.js";
 import { taskDetail } from "./evidence.js";
 import { bradburyPreflight } from "./bradbury.js";
+import { matchesTaskDescription, taskDescription } from "./description.js";
 
 // One pilot per journal. A persistent intent precedes the first funded request.
 export async function preparePilot(db: Journal, bradburyWallet: Address) {
@@ -25,17 +26,19 @@ export async function preparePilot(db: Journal, bradburyWallet: Address) {
   db.db.exec(
     "CREATE TABLE IF NOT EXISTS pilot (slot INTEGER PRIMARY KEY CHECK(slot=1), intent TEXT NOT NULL, task TEXT, claimed INTEGER DEFAULT 0, submitted INTEGER DEFAULT 0)",
   );
-  db.db.prepare("INSERT OR IGNORE INTO pilot(slot,intent) VALUES (1,?)").run(intentFor(agreement));
+  const readableIntent = commitment({ original: intentFor(agreement), description: taskDescription(agreement) });
+  db.db.prepare("INSERT OR IGNORE INTO pilot(slot,intent) VALUES (1,?)").run(readableIntent);
   const record = db.db.prepare("SELECT * FROM pilot WHERE slot=1").get()!;
-  if (record.intent !== intentFor(agreement)) {
+  if (record.intent !== readableIntent && record.intent !== intentFor(agreement)) {
     // A run that started before the fee waiver must retain its original terms and request key.
     const original = JSON.parse(readFileSync(resolve("examples/taskmarket/settled-pilot.json"), "utf8"));
     agreement = agreementSchema.parse(original.agreement);
     if (record.intent !== intentFor(agreement))
       throw new Error("Pilot wallets or agreement differ from the saved run");
   }
-  const description = JSON.stringify(agreement);
-  const intent = intentFor(agreement);
+  // Replay an outstanding creation with exactly the original description and idempotency key.
+  const intent = String(record.intent);
+  const description = intent === readableIntent ? taskDescription(agreement) : JSON.stringify(agreement);
   let id: Hash;
   if (record.task) id = hash.parse(record.task);
   else {
@@ -105,7 +108,7 @@ export async function preparePilot(db: Journal, bradburyWallet: Address) {
       throw new Error("Created task differs from the stake-free pilot agreement");
     const t = await taskDetail(id);
     if (
-      t.description !== description ||
+      !matchesTaskDescription(t.description, agreement) ||
       t.submissionVisibility !== "public" ||
       t.taskVisibility !== "public"
     )

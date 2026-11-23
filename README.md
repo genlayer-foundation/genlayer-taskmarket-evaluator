@@ -70,7 +70,15 @@ Open [the local ledger](http://127.0.0.1:4731). The demo seeds approval, rejecti
 
 ## Evaluate a buyer's task
 
-The buyer puts the complete agreed JSON in the task description. The service supports public single-worker claim tasks with zero platform fee, no stake, and no award-transforming hook. It accepts UTF-8 plain text, Markdown, CSV and JSON, up to 48 KiB per submission. Each milestone has a price in millionths of OUSD. The prices together equal escrow less the evaluator fee. The [research agreement](examples/taskmarket/research.json) prices the comparison at 30 and the reproducible procedures at 20, with a zero fee.
+Generate the public Taskmarket description from the agreement and paste the entire output into the task description. Run this from the repository root. For a mainnet hire, set `TASKMARKET_SETTLEMENT_NETWORK=tempo-mainnet` and use the buyer’s mainnet agreement file.
+
+```sh
+npm run --silent taskmarket:evaluator -- describe examples/taskmarket/fixed.json
+```
+
+Taskmarket uses the first line as the title. Put a short headline on the first line of the agreed brief. The public description includes the full assignment, each milestone’s price and judging criteria, the fee, and the ruling network. The evaluator verifies that text against the enrolled agreement. Existing tasks published as JSON remain supported. Preview the text before sending a direct hire. Taskmarket locks the offer while it awaits the worker’s answer. [Taskmarket hiring rules](https://docs.taskmarket.dev/reference/hiring)
+
+The service supports public single-worker claim tasks with zero platform fee, no stake, and no award-transforming hook. It accepts UTF-8 plain text, Markdown, CSV and JSON, up to 48 KiB per submission. Each milestone has a price in millionths of OUSD. The prices together equal escrow less the evaluator fee. The [research agreement](examples/taskmarket/research.json) prices the comparison at 30 and the reproducible procedures at 20, with a zero fee.
 
 Enroll an agreed task explicitly and run one worker per journal.
 

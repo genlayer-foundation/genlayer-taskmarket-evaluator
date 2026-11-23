@@ -1,8 +1,6 @@
 import { keccak256, sha256 } from "viem";
 import { z } from "zod";
 import {
-  agreementSchema,
-  commitment,
   address,
   api,
   chainId,
@@ -13,6 +11,7 @@ import {
   type Evidence,
   type Job,
 } from "./model.js";
+import { matchesTaskDescription } from "./description.js";
 
 export class SourceNotFound extends Error {}
 const MAX_TEXT = 48 * 1024;
@@ -135,14 +134,7 @@ export async function collectEvidence(
       "Pilot requires a matching public, direct, single-worker claim with zero platform fee",
     );
   // The operator pins the exact agreement before enrollment. The remote description must match every field.
-  let published: unknown;
-  try {
-    published = JSON.parse(t.description);
-  } catch {
-    throw new Review("Published task description is not a pilot agreement");
-  }
-  const actual = agreementSchema.safeParse(published);
-  if (!actual.success || commitment(actual.data) !== commitment(job.agreement))
+  if (!matchesTaskDescription(t.description, job.agreement))
     throw new Review("Published task terms differ from enrolled terms");
   const subs = z.array(subSchema).parse(await json(job.id + "/submissions"));
   const matches = subs.filter(

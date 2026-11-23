@@ -9,6 +9,7 @@ import { taskDetail } from "./evidence.js";
 import { Journal } from "./store.js";
 import { example, fixtureAddress, simulation } from "./demo.js";
 import { commitment, digest } from "./model.js";
+import { taskDescription } from "./description.js";
 vi.mock("./tempo.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./tempo.js")>()),
   minimumAppealSeconds: vi.fn(async () => 300),
@@ -54,7 +55,7 @@ describe("by-address pilot", () => {
     s.task.status = 0;
     vi.mocked(state).mockImplementation(async () => structuredClone(s));
     vi.mocked(taskDetail).mockResolvedValue({
-      description: JSON.stringify(agreement),
+      description: taskDescription(agreement),
       submissionVisibility: "public",
       taskVisibility: "public",
     } as Awaited<ReturnType<typeof taskDetail>>);
@@ -65,6 +66,7 @@ describe("by-address pilot", () => {
     vi.mocked(cli).mockImplementation(async (args, key, home) => {
       writes.push({ op: args[1], key, role: basename(home!) });
       if (args[1] === "create") {
+        expect(args[args.indexOf("--description") + 1]).toBe(taskDescription(agreement));
         expect(args[args.indexOf("--evaluator-fee-bps") + 1]).toBe("0");
         expect(args).toEqual(
           expect.arrayContaining([
@@ -108,5 +110,17 @@ describe("by-address pilot", () => {
     expect(await preparePilot(db, judge)).toBe(id);
     expect(db.get(id)?.agreement.evaluatorFeeBps).toBe(500);
     expect(cli).not.toHaveBeenCalled();
+  });
+  it("replays an unresolved JSON listing with its original request key and payload", async () => {
+    const agreement = example(false);
+    const intent = commitment({ network: 42431, ...roles, bradburyWallet: judge, agreement });
+    db.db.exec("CREATE TABLE pilot (slot INTEGER PRIMARY KEY, intent TEXT, task TEXT, claimed INTEGER, submitted INTEGER)");
+    db.db.prepare("INSERT INTO pilot VALUES (1, ?, NULL, 0, 0)").run(intent);
+    vi.mocked(bradburyPreflight).mockResolvedValue({ depositCovered: true } as Awaited<ReturnType<typeof bradburyPreflight>>);
+    vi.mocked(cli).mockRejectedValue(new Error("response lost"));
+    await expect(preparePilot(db, judge)).rejects.toThrow("response lost");
+    const [args, key] = vi.mocked(cli).mock.calls[0];
+    expect(args[args.indexOf("--description") + 1]).toBe(JSON.stringify(agreement));
+    expect(key).toBe("pilot-create-" + intent.slice(2));
   });
 });

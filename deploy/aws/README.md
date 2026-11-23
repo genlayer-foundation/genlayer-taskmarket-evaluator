@@ -40,7 +40,7 @@ The same private host runs `taskmarket-worker-mainnet` and `taskmarket-ledger-ma
 
 Set `TASKMARKET_SETTLEMENT_NETWORK=tempo-mainnet` when running the installer for this pair. Its secret is `taskmarket-evaluator-testnet/mainnet-evaluator`. On a replacement host, restore only the matching mainnet journal and reconcile in-flight jobs. The initial empty backup is written once using a conditional S3 put. The installer requires a valid backup whenever the state directory is empty.
 
-The mainnet evaluator wallet is `0x967571C1332800D72eEE2E381984155748599246` on Tempo. The dedicated Bradbury signer is `0xBcbD6e1A10b89a24459786Fa12D7d3e4Db852c22`. Confirm the mainnet identity, available OUSD and Bradbury deposit before accepting a job. Confirm the buyer understands the public testnet ruling controls real OUSD via the operator relay. Put the exact agreed JSON in the task and enroll it on the matching worker:
+The mainnet evaluator wallet is `0x967571C1332800D72eEE2E381984155748599246` on Tempo. The dedicated Bradbury signer is `0xBcbD6e1A10b89a24459786Fa12D7d3e4Db852c22`. Confirm the mainnet identity, available OUSD and Bradbury deposit before accepting a job. Confirm the buyer understands the public testnet ruling controls real OUSD via the operator relay. Generate the public description from the agreed file with `TASKMARKET_SETTLEMENT_NETWORK=tempo-mainnet npm run --silent taskmarket:evaluator -- describe examples/taskmarket/hybrid.json`. Use the full output when posting and enroll the same agreement on the mainnet worker.
 
 ```sh
 sudo docker exec taskmarket-worker-mainnet node dist/src/taskmarket/main.js track <mainnet-task-id> examples/taskmarket/hybrid.json

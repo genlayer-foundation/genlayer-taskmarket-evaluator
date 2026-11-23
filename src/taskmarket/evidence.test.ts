@@ -5,6 +5,7 @@ import { discover } from "./inbox.js";
 import { example, fixtureAddress } from "./demo.js";
 import { api, chainId, digest, type Job } from "./model.js";
 import type { Journal } from "./store.js";
+import { taskDescription } from "./description.js";
 
 afterEach(() => vi.unstubAllGlobals());
 const agreement = example(false),
@@ -31,7 +32,7 @@ const task = {
   hooks: [],
   platformFeeBps: 0,
 };
-function publicData(tamper: "none" | "manifest" | "file" | "terms") {
+function publicData(tamper: "none" | "manifest" | "file" | "terms", description = task.description) {
   const contents = "A public guide.";
   const file = stringToBytes(contents);
   const item = {
@@ -48,7 +49,7 @@ function publicData(tamper: "none" | "manifest" | "file" | "terms") {
   const previewUrl = "https://taskmarket." + "a".repeat(32) + ".r2.cloudflarestorage.com/guide";
   const path = "/api/tasks/" + id;
   const responses: Record<string, string> = {
-    [path]: JSON.stringify(tamper === "terms" ? { ...task, description: "different agreement" } : task),
+    [path]: JSON.stringify({ ...task, description: tamper === "terms" ? "different agreement" : description }),
     [path + "/submissions"]: JSON.stringify([
       {
         id: subId,
@@ -71,6 +72,19 @@ function publicData(tamper: "none" | "manifest" | "file" | "terms") {
   return { source, submitTx, contents };
 }
 describe("public evidence", () => {
+  it("binds the visible headline, rubric and prices to the enrolled agreement", async () => {
+    const description = taskDescription(agreement);
+    expect(description.split("\n")[0]).toBe("Explain how a requester selects an evaluator at task creation.");
+    expect(description).toContain(agreement.milestones[0].rubric);
+    expect(description).toContain("1 test OUSD");
+    const { source } = publicData("none", description);
+    const collect = () => collectEvidence({ id, agreement } as Job, source, async () => 123n);
+    expect((await collect()).briefHash).toBe(digest(description));
+    for (const part of [description.split("\n")[0], agreement.milestones[0].rubric, "1 test OUSD"]) {
+      publicData("none", description.replace(part, "Edited after posting"));
+      await expect(collect()).rejects.toThrow("terms differ");
+    }
+  });
   it("pins published terms, canonical manifest, file bytes and the verified submission", async () => {
     const { source, submitTx, contents } = publicData("none");
     const verify = vi.fn(async () => 123n);
@@ -86,7 +100,7 @@ describe("public evidence", () => {
   });
 });
 describe("public evaluator inbox", () => {
-  it("enrolls only an assigned task with the pinned brief for an approved buyer", async () => {
+  it.each([task.description, taskDescription(agreement)])("enrolls only a matching assigned task for an approved buyer", async (description) => {
     const next = "opaque cursor",
       track = vi.fn();
     const db = { get: () => undefined, track } as unknown as Journal;
@@ -100,7 +114,7 @@ describe("public evaluator inbox", () => {
       Response.json(
         url.pathname === "/api/agents/action-queue"
           ? { items: [{ ...queueItem, task: { chainId: 84532 } }, queueItem], nextCursor: next }
-          : task,
+          : { ...task, description },
       ),
     );
     vi.stubGlobal("fetch", fn);

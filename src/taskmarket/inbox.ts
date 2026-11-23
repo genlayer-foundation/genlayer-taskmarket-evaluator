@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { type Address } from "viem";
 import { Journal } from "./store.js";
-import { api, agreementSchema, chainId, commitment, hash, Review, type Agreement } from "./model.js";
+import { api, chainId, hash, Review, type Agreement } from "./model.js";
+import { matchesTaskDescription } from "./description.js";
 import { taskDetail, SourceNotFound } from "./evidence.js";
 
 const queue = z.object({
@@ -60,15 +61,7 @@ export async function discover(
         t.submissionVisibility !== "public"
       )
         continue;
-      let terms: unknown;
-      try {
-        terms = JSON.parse(t.description);
-      } catch {
-        continue;
-      }
-      const published = agreementSchema.safeParse(terms);
-      if (published.success && commitment(published.data) === commitment(offer))
-        db.track(action.taskId, offer);
+      if (matchesTaskDescription(t.description, offer)) db.track(action.taskId, offer);
     }
   }
   return page.nextCursor ?? undefined;

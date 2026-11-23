@@ -15,6 +15,7 @@ import * as tempo from "./tempo.js";
 import { collectEvidence } from "./evidence.js";
 import { runExample, scenarios } from "./demo.js";
 import { CaseNotices, noticeIO } from "./notices.js";
+import { taskDescription } from "./description.js";
 
 const [command = "serve", ...args] = process.argv.slice(2);
 const demo = command === "demo";
@@ -58,6 +59,11 @@ async function serve(db: Journal) {
   );
 }
 async function main() {
+  if (command === "describe" && args.length === 1) {
+    const terms = agreementSchema.parse(JSON.parse(readFileSync(args[0], "utf8")));
+    process.stdout.write(taskDescription(terms));
+    return;
+  }
   if (mainnet && (command === "pilot" || demo)) throw new Error("The automated demo and funded pilot commands run only on Tempo testnet");
   const keyFile = resolve(operatorHome, "bradbury.key");
   if (command === "preflight") {
@@ -100,7 +106,7 @@ async function main() {
     }
     if (!["work", "once", "pilot"].includes(command))
       throw new Error(
-        "Usage: serve | demo | preflight | prepare-signer | track TASK_ID BRIEF.json | show TASK_ID | pilot | work | once",
+        "Usage: serve | demo | preflight | prepare-signer | describe BRIEF.json | track TASK_ID BRIEF.json | show TASK_ID | pilot | work | once",
       );
     db.takeWorkerLock();
     await tempo.preflight();
