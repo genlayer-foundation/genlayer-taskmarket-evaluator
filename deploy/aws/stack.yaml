@@ -8,6 +8,12 @@ Parameters:
   Ami:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64
+  SiteCertificateArn:
+    Type: String
+    Default: ''
+    Description: Optional issued ACM certificate in us-east-1 covering taskmarket.internetcourt.org.
+Conditions:
+  HasSiteCertificate: !Not [!Equals [!Ref SiteCertificateArn, '']]
 Resources:
   Images:
     Type: AWS::ECR::Repository
@@ -77,6 +83,13 @@ Resources:
         Enabled: true
         DefaultRootObject: index.html
         PriceClass: PriceClass_100
+        Aliases: !If [HasSiteCertificate, [taskmarket.internetcourt.org], !Ref 'AWS::NoValue']
+        ViewerCertificate: !If
+          - HasSiteCertificate
+          - AcmCertificateArn: !Ref SiteCertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - !Ref 'AWS::NoValue'
         Origins:
           - Id: receipts
             DomainName: !GetAtt Receipts.RegionalDomainName
@@ -234,8 +247,10 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
 Outputs:
-  PublicSite: {Value: !Sub 'https://${ReceiptDistribution.DomainName}'}
-  ReceiptFeed: {Value: !Sub 'https://${ReceiptDistribution.DomainName}/completed.json'}
+  PublicSite:
+    Value: !If [HasSiteCertificate, 'https://taskmarket.internetcourt.org', !Sub 'https://${ReceiptDistribution.DomainName}']
+  ReceiptFeed:
+    Value: !If [HasSiteCertificate, 'https://taskmarket.internetcourt.org/completed.json', !Sub 'https://${ReceiptDistribution.DomainName}/completed.json']
   HostId: {Value: !Ref Host}
   Bucket: {Value: !Ref Backups}
   ImageRepository: {Value: !GetAtt Images.RepositoryUri}
