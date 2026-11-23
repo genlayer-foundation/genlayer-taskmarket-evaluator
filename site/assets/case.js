@@ -26,7 +26,11 @@ function render(data) {
       const epoch = m.deadline * 1000;
       card.append(el("p","Decision " + m.decision + " · Appeal deadline " + new Date(epoch).toISOString().replace("T"," ").replace(".000Z"," UTC")));
       const clock = el("strong",""); clock.dataset.deadline = String(epoch); card.append(clock);
-      const commands = el("details",""); commands.append(el("summary","Check the quote and appeal with the GenLayer CLI"),
+    }
+    if (validId(m.tx) && !["Finalized","Canceled"].includes(m.status)) {
+      const commands = el("details",""); commands.dataset.expires = String((m.deadline || 0) * 1000);
+      commands.append(el("summary", m.decision ? "Check the quote and appeal with the GenLayer CLI" : "Prepare the commands for this ruling"),
+        el("p","Once the jury has issued an eligible decision, check the quote. Use the second command only if you want to fund an appeal from your wallet."),
         el("pre","genlayer appeal-bond " + m.tx + " --rpc " + rpc + "\n" + "genlayer appeal " + m.tx + " --rpc " + rpc));
       card.append(commands);
     }
@@ -39,8 +43,10 @@ function countdown() {
   for (const node of list.querySelectorAll("[data-deadline]")) {
     const secs = Math.ceil((Number(node.dataset.deadline) - Date.now()) / 1000);
     node.textContent = secs > 0 ? secs + " seconds remaining by your device clock" : "The recorded appeal deadline has passed.";
-    const commands = node.nextElementSibling;
-    commands.hidden = secs <= 0 || !connected;
+  }
+  for (const commands of list.querySelectorAll("details[data-expires]")) {
+    const expires = Number(commands.dataset.expires);
+    commands.hidden = !connected || (expires !== 0 && expires <= Date.now());
   }
 }
 async function refresh() {
