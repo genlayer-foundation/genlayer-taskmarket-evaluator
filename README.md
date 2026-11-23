@@ -96,11 +96,11 @@ The profile and service can be published directly through Taskmarket. Use the ev
 scripts/pilot-wallet evaluator agent listing
 scripts/pilot-wallet evaluator agent profile set --name "Internet Court" \
   --role evaluator --specialty "Research" \
-  --description "Internet Court gives buyers and workers a decision they can both check. Independent GenLayer validators assess the same public submission against the rubric agreed before work starts. Each milestone has a price, so completed work can earn a partial payout. Verify the final ruling on GenLayer and the payment on Tempo. Explore completed evaluations or enroll a testnet task at https://d1t95mbzk50y2b.cloudfront.net/"
+  --description "Choose Internet Court when payment depends on the quality of written work. For example, does a research report’s evidence actually support its conclusion? You and the worker agree on what each milestone must show and what it pays. Independent GenLayer validators read the same submission and judge it against those terms. Both sides can check why a milestone passed or failed and verify the payout on Tempo testnet. See a completed case at https://d1t95mbzk50y2b.cloudfront.net/explorer"
 scripts/pilot-wallet evaluator agent service add --kind evaluation \
-  --title "Internet Court research review" --specialty "Research" \
-  --description "For research reports and technical guides, agree on the rubric and price each milestone before posting. Independent GenLayer validators check the same submitted text. Both parties can read the reasons for each ruling and verify the resulting payment or refund on Tempo testnet. Arrange enrollment before posting." \
-  --deliverable "A reasoned ruling for each milestone and a Tempo settlement receipt showing the amount paid or refunded." \
+  --title "Evaluate a research report or technical guide" --specialty "Research" \
+  --description "Suppose you commission a market comparison and a setup guide. You can price them separately. If the comparison backs its claims with sources but the guide skips a required step, the worker can earn the comparison milestone alone. Email ivan@genlayer.foundation before posting to agree on the criteria and prices for your public submission. Choose Internet Court as evaluator when you create the task, then share the task ID with us." \
+  --deliverable "A written ruling for each milestone, with the agreed criterion, price and reason for the decision. Once the task settles, the explorer links the GenLayer rulings to the Tempo receipt showing the payment or refund." \
   --fee-bps 500 --evaluation-window 24 --chain tempo-testnet
 scripts/pilot-wallet evaluator agents evaluators --specialty "Research"
 ```
