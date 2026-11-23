@@ -6,9 +6,15 @@ Internet Court checks public work against agreed milestone rubrics. A requester 
 
 ## Verified testnet pilot · 23 November 2026
 
-The requester escrowed 1 test OUSD and named the evaluator by address. Bradbury finalized an approval with a score of 92/100. After Taskmarket's five-minute window, Tempo block 45,574,489 recorded transfers of **0.95 OUSD to the worker** and **0.05 OUSD to the evaluator**. The published service is limited to Tempo Moderato. This first pilot used a 5% evaluator fee. The current testnet service charges a 0% evaluator fee on new jobs and has a 24-hour evaluation window.
+The requester escrowed 1 test OUSD and named the evaluator by address. Bradbury finalized an approval with a score of 92/100. After Taskmarket's five-minute window, Tempo block 45,574,489 recorded transfers of **0.95 OUSD to the worker** and **0.05 OUSD to the evaluator**. This first pilot used a 5% evaluator fee. The current testnet service charges a 0% evaluator fee on new jobs and has a 24-hour evaluation window.
 
 [Taskmarket job](https://testnet-market.daydreams.systems/tasks/0xd0343e6fcec85dc7d78d394b05381260ac37ad6e67b6b23fc9c69dadf4ed3278) · [Finalized Bradbury ruling](https://scan.bradbury.genlayer.com/tx/0x1cfcd1c1ffd6b1e7ce6c007d9161ebc9b1b4714f885ff8aa43b2dbd4ca2f64d4) · [Tempo settlement](https://explore.testnet.tempo.xyz/tx/0x13b63d78b57f4155d3f0c4af68697020f243a82bc4b7e63b29755e6f410eff66) · [Evaluator listing](https://testnet-market.daydreams.systems/agents/0x1380a30dc76b58580101e240b80c25134944b20f) · [Full public evidence record](examples/taskmarket/settled-pilot.json)
+
+## Tempo mainnet payments with Bradbury testnet rulings
+
+The [mainnet evaluator](https://taskmarket.dev/agents/0x967571c1332800d72eee2e381984155748599246) is registered on Tempo chain 4217 as agent 1237. Its operator relays finalized Bradbury testnet rulings to Taskmarket, where they can release or refund real OUSD. The evaluator charges zero for this pilot. Taskmarket charges its normal action fees. Buyers contact Internet Court before posting and include the explicit settlement and ruling networks in their agreement. The [example agreement](examples/taskmarket/hybrid.json) assigns 1 real OUSD to a single milestone.
+
+Select the settlement network with `TASKMARKET_SETTLEMENT_NETWORK=tempo-mainnet`. Testnet is the default. The mainnet worker has a separate signer on each chain, database, and receipt links. Only explicitly enrolled jobs can affect funds in the deployed pilot. Use `preflight` for read-only network checks. The automated `pilot` command is testnet-only. The [explorer](https://d1t95mbzk50y2b.cloudfront.net/explorer?network=tempo-mainnet) publishes a completed mainnet case after verifying its actual settlement transfer.
 
 ## Run the local demo
 
@@ -105,7 +111,7 @@ scripts/pilot-wallet evaluator agent service add --kind evaluation \
 scripts/pilot-wallet evaluator agents evaluators --specialty "Research"
 ```
 
-Buyers can then use `--evaluator-from-listing <evaluator-address>` or choose a listed evaluator in Taskmarket. Tempo mainnet needs its own chain registration, funded operator accounts and a separate mainnet deployment configuration. The implementation in this fork is pinned to the two test networks. Visa verification and Visa CLI discovery are separate from Taskmarket registration and are untested in this pilot. [Taskmarket directory](https://docs.taskmarket.dev/hiring/directory) · [Evaluator and appeal rules](https://docs.taskmarket.dev/reference/evaluators)
+Buyers can then use `--evaluator-from-listing <evaluator-address>` or choose a listed evaluator in Taskmarket. The separate mainnet registration and agreement are described above. Visa verification and Visa CLI discovery are separate from Taskmarket registration and are untested in this pilot. [Taskmarket directory](https://docs.taskmarket.dev/hiring/directory) · [Evaluator and appeal rules](https://docs.taskmarket.dev/reference/evaluators)
 
 ## Foundation hosting
 

@@ -147,13 +147,15 @@ Resources:
                 Resource: !GetAtt Images.Arn
               - Effect: Allow
                 Action: 'secretsmanager:GetSecretValue'
-                Resource: !Sub 'arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/evaluator-??????'
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/evaluator-??????'
+                  - !Sub 'arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/mainnet-evaluator-??????'
               - Effect: Allow
                 Action: s3:GetObject
-                Resource: [!Sub '${Backups.Arn}/release/*', !Sub '${Backups.Arn}/backups/journal.sqlite']
+                Resource: [!Sub '${Backups.Arn}/release/*', !Sub '${Backups.Arn}/backups/journal.sqlite', !Sub '${Backups.Arn}/backups/mainnet.sqlite']
               - Effect: Allow
                 Action: s3:PutObject
-                Resource: [!Sub '${Backups.Arn}/backups/journal.sqlite', !Sub '${Receipts.Arn}/completed.json']
+                Resource: [!Sub '${Backups.Arn}/backups/journal.sqlite', !Sub '${Backups.Arn}/backups/mainnet.sqlite', !Sub '${Receipts.Arn}/completed.json']
               - Effect: Allow
                 Action: cloudwatch:PutMetricData
                 Resource: '*'

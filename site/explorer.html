@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f4ec">
   <title>Evaluation explorer | Internet Court × Taskmarket</title>
-  <meta name="description" content="Explore completed Taskmarket evaluations. Read the agreed rubric and GenLayer rulings, then verify the payment or refund on Tempo testnet.">
+  <meta name="description" content="Explore completed Taskmarket evaluations on Tempo mainnet and testnet. Read each Bradbury testnet ruling and verify the payment or refund on its own network.">
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/site.css">
   <link rel="stylesheet" href="/assets/explorer.css">
@@ -19,13 +19,14 @@
   </div></header>
   <main class="shell archive" id="main">
     <div class="archive-intro">
-      <p class="kicker">Court records · Testnet</p>
+      <p class="kicker">Court records · Taskmarket</p>
       <h1>Evaluation explorer</h1>
-      <p>Read the terms, see how each milestone was judged, and follow the money. A case appears here once its payment or refund is verified on Tempo.</p>
+      <p>Read the agreed terms, the ruling on Bradbury testnet and the verified Tempo receipt. Mainnet payments use real OUSD. Testnet payments use test OUSD.</p>
     </div>
     <form id="filters" class="filters" role="search" action="/explorer">
       <label>Search records<input type="search" name="q" placeholder="Brief, milestone or task ID"></label>
       <label>Venue<select name="venue"><option value="">All venues</option><option value="taskmarket">Taskmarket</option></select></label>
+      <label>Payment network<select name="network"><option value="">Both networks</option><option value="tempo-mainnet">Tempo mainnet</option><option value="tempo-testnet">Tempo testnet</option></select></label>
       <label>Decision<select name="verdict"><option value="">All decisions</option><option value="approve">Approved</option><option value="partial">Partial award</option><option value="reject">Rejected</option></select></label>
       <button type="submit" class="button">Search</button>
     </form>
@@ -34,6 +35,6 @@
     <div id="records"></div>
     <button class="button" type="button" id="retry" hidden>Retry loading records</button>
   </main>
-  <footer class="site-footer"><div class="shell footer-inner"><a href="https://internetcourt.org">Internet Court</a><span>Taskmarket · Tempo testnet</span></div></footer>
+  <footer class="site-footer"><div class="shell footer-inner"><a href="https://internetcourt.org">Internet Court</a><span>Taskmarket · GenLayer Bradbury testnet rulings</span></div></footer>
 </body>
 </html>

@@ -34,9 +34,21 @@ sudo docker exec taskmarket-worker node dist/src/taskmarket/main.js show <task-i
 
 For other agreed terms, copy the approved public JSON into the worker container and pass its path to `track`. Enrollment stores the agreement in the persistent journal. Keep one signing worker active for this identity. The default deployment takes explicitly enrolled tasks.
 
+## Tempo mainnet worker
+
+The same private host runs `taskmarket-worker-mainnet` and `taskmarket-ledger-mainnet` on a separate data volume directory at `/srv/taskmarket-evaluator/mainnet`. The private ledger binds to loopback port 4733. The mainnet containers receive their own journal and only the worker mounts its dedicated credentials. The backup is `backups/mainnet.sqlite`. The shared monitor checks both workers and publishes network-labelled public receipts.
+
+Set `TASKMARKET_SETTLEMENT_NETWORK=tempo-mainnet` when running the installer for this pair. Its secret is `taskmarket-evaluator-testnet/mainnet-evaluator`. On a replacement host, restore only the matching mainnet journal and reconcile in-flight jobs. The initial empty backup is written once using a conditional S3 put. The installer requires a valid backup whenever the state directory is empty.
+
+The mainnet evaluator wallet is `0x967571C1332800D72eEE2E381984155748599246` on Tempo. The dedicated Bradbury signer is `0xBcbD6e1A10b89a24459786Fa12D7d3e4Db852c22`. Confirm the mainnet identity, available OUSD and Bradbury deposit before accepting a job. Confirm the buyer understands the public testnet ruling controls real OUSD via the operator relay. Put the exact agreed JSON in the task and enroll it on the matching worker:
+
+```sh
+sudo docker exec taskmarket-worker-mainnet node dist/src/taskmarket/main.js track <mainnet-task-id> examples/taskmarket/hybrid.json
+```
+
 ## Release or recover
 
-The `PublicSite` stack output is the standalone Internet Court × Taskmarket landing page. Its `/explorer` reads the same-origin `ReceiptFeed` output. The monitor publishes completed Taskmarket testnet evaluations, including the public brief, milestone terms, reasons, decision, amount and receipt references. CloudFront can read the two site documents, their static assets, and `completed.json` from a dedicated bucket. New settlements are published on the next monitor run and cached for one minute.
+The `PublicSite` stack output is the standalone Internet Court × Taskmarket landing page. Its `/explorer` reads the same-origin `ReceiptFeed` output. The monitor publishes completed Taskmarket evaluations from both settlement networks, including the public brief, milestone terms, reasons, decision, amount and receipt references. CloudFront can read the two site documents, their static assets, and `completed.json` from a dedicated bucket. New settlements are published on the next monitor run and cached for one minute.
 
 To release a site change, run the following from the repository root with the Foundation AWS profile and region set. The evaluator publishes the feed independently.
 
@@ -48,7 +60,7 @@ aws s3 cp site/index.html "s3://$receipts/index.html" --content-type text/html -
 ```
 
 - The [CloudFormation template](stack.yaml) creates the host, an outbound-only security group, an encrypted gp3 disk retained on termination, a private ECR repository, a versioned private S3 bucket, a scoped instance role, and two CloudWatch alarms. Select an existing private subnet with outbound access. The deployment uses the same AWS account and region for each resource.
-- Build the root Dockerfile for `linux/arm64`, push an immutable commit tag into the stack’s ECR repository, and record the image digest. Put [install.sh](install.sh) and [host.py](host.py) in the private backup bucket as `release/install.sh` and `release/host.py`. The host can write the journal backup there and the public index in the dedicated receipts bucket.
+- Build the root Dockerfile for `linux/arm64`, push an immutable commit tag into the stack’s ECR repository, and record the image digest. Put [install.sh](install.sh) and [host.py](host.py) in the private backup bucket as `release/install.sh` and `release/host.py`. The host can write the journal backup for each network there and the public index in the dedicated receipts bucket.
 - The Secrets Manager secret `taskmarket-evaluator-testnet/evaluator` holds a JSON object with the evaluator’s Taskmarket device profile under `taskmarket` and its Bradbury key under `bradbury`. Only the signing container mounts the hydrated credential files. Keep the requester and worker wallets separate.
 - For first installation or replacement, stop the old signing process and verify it has exited. Prefer the original retained encrypted volume. When restoring from backup, reconcile any in-flight deployment with Bradbury and Tempo before starting a replacement worker. Restore `backups/journal.sqlite` using a verified SQLite online backup and confirm its integrity and last transaction. A running SQLite WAL database requires a consistent SQLite backup.
 - From the target’s Systems Manager session as root, set `AWS_REGION`, `BUCKET`, `RECEIPTS_BUCKET` and `IMAGE` to the release’s region, private backup bucket, dedicated receipt bucket (the stack’s `Receipts` resource) and full ECR image URI **with digest**. Download `release/install.sh` and invoke it with Bash. The installer restores the backup only on a fresh disk and starts the worker, private ledger and timer. Reboots restart both containers automatically.

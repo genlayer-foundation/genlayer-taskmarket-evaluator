@@ -19,6 +19,8 @@ import { z } from "zod";
 import {
   address,
   chainId,
+  cliNetwork,
+  mainnet,
   diamond,
   rpc,
   api,
@@ -268,7 +270,7 @@ export function operationId(name: string) {
   const namespace = Buffer.from("6ba7b8119dad11d180b400c04fd430c8", "hex");
   const bytes = createHash("sha1")
     .update(namespace)
-    .update("urn:genlayer:taskmarket:moderato:" + name)
+    .update("urn:genlayer:taskmarket:" + (mainnet ? "mainnet:" : "moderato:") + name)
     .digest()
     .subarray(0, 16);
   bytes[6] = (bytes[6] & 15) | 0x50;
@@ -287,12 +289,12 @@ export async function cli(
     ...process.env,
     TASKMARKET_HOME: home,
     TASKMARKET_API_URL: api,
-    TASKMARKET_NETWORK: "tempo-testnet",
+    TASKMARKET_NETWORK: cliNetwork,
     TASKMARKET_IDEMPOTENCY_KEY: key ? operationId(key) : undefined,
   };
   delete env.GENLAYER_PRIVATE_KEY;
   try {
-    const { stdout } = await run(process.execPath, [executable, "--network", "tempo-testnet", ...args], {
+    const { stdout } = await run(process.execPath, [executable, "--network", cliNetwork, ...args], {
       env,
       timeout: 120000,
       maxBuffer: 1024 * 1024,

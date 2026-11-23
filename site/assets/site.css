@@ -65,6 +65,7 @@ button, input, select { font: inherit; }
 .hero-copy h1, .section-heading, .case-paper h2, .award-figure { font-family: var(--serif); font-weight: 400; }
 .hero-copy h1 { max-width: 13ch; font-size: clamp(3.2rem, 5.9vw, 5.5rem); line-height: .99; letter-spacing: -.055em; text-wrap: balance; }
 .hero-intro { max-width: 36rem; margin-top: 1.5rem; color: var(--muted); font-size: clamp(1.05rem, 1.5vw, 1.18rem); line-height: 1.55; }
+.pilot-terms { max-width: 38rem; margin-top: 1.15rem; padding: .75rem 1rem; border-left: 3px solid var(--red); background: var(--cream); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1.75rem; }
 .case-paper {
   position: relative; margin-right: .35rem; padding: clamp(1.25rem, 3vw, 2.15rem);

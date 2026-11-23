@@ -6,7 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 import { Journal, publicJob } from "./store.js";
-import { address, agreementSchema, hash } from "./model.js";
+import { address, agreementSchema, hash, mainnet, operatorHome, settlementNetwork } from "./model.js";
 import { discover } from "./inbox.js";
 import { preparePilot } from "./pilot.js";
 import { advance } from "./engine.js";
@@ -21,7 +21,7 @@ async function serve(db: Journal) {
   const app = express();
   app.use(express.json({ limit: "2kb" }));
   app.get("/evaluations", (_req, res) =>
-    res.json({ mode: demo ? "simulation" : "tempo-testnet", jobs: db.list().map(publicJob) }),
+    res.json({ mode: demo ? "simulation" : settlementNetwork, rulingNetwork: "bradbury-testnet", jobs: db.list().map(publicJob) }),
   );
   app.get("/evaluations/:id", (req, res) => {
     const job = db.get(req.params.id);
@@ -57,7 +57,8 @@ async function serve(db: Journal) {
   );
 }
 async function main() {
-  const keyFile = resolve("data/pilot/bradbury.key");
+  if (mainnet && (command === "pilot" || demo)) throw new Error("The automated demo and funded pilot commands run only on Tempo testnet");
+  const keyFile = resolve(operatorHome, "bradbury.key");
   if (command === "preflight") {
     const key =
       process.env.GENLAYER_PRIVATE_KEY ??
@@ -68,7 +69,7 @@ async function main() {
     return;
   }
   if (command === "prepare-signer") {
-    mkdirSync(resolve("data/pilot"), { recursive: true, mode: 0o700 });
+    mkdirSync(resolve(operatorHome), { recursive: true, mode: 0o700 });
     if (!existsSync(keyFile)) writeFileSync(keyFile, generatePrivateKey(), { flag: "wx", mode: 0o600 });
     const signer = privateKeyToAccount(hash.parse(readFileSync(keyFile, "utf8").trim()));
     console.log("Bradbury test GEN funding address", signer.address);
@@ -100,7 +101,7 @@ async function main() {
       );
     db.takeWorkerLock();
     await tempo.preflight();
-    process.env.TASKMARKET_HOME ??= resolve("data/pilot/evaluator");
+    process.env.TASKMARKET_HOME ??= resolve(operatorHome, "evaluator");
     const key = hash.parse(process.env.GENLAYER_PRIVATE_KEY ?? readFileSync(keyFile, "utf8").trim());
     if (command === "pilot") process.env.TASKMARKET_HOME = resolve("data/pilot/evaluator");
     const wallet = await tempo.wallet();

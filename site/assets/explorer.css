@@ -2,7 +2,7 @@
 .archive-intro {max-width: 50rem}
 .archive h1 {font: 500 clamp(3rem,7vw,6.2rem)/1.02 var(--serif); letter-spacing: -.045em; margin: .3em 0}
 .archive-intro > p:last-child {max-width: 42rem; font-size: clamp(1.08rem,2vw,1.35rem); line-height: 1.55}
-.filters {display: grid; grid-template-columns: minmax(12rem,2fr) repeat(2,minmax(10rem,1fr)) auto; gap: 1rem; align-items: end; padding: 1.5rem 0; border-block: 1px solid var(--line); margin-top: clamp(2rem,5vw,4rem)}
+.filters {display: grid; grid-template-columns: minmax(12rem,1.7fr) repeat(3,minmax(9rem,1fr)) auto; gap: 1rem; align-items: end; padding: 1.5rem 0; border-block: 1px solid var(--line); margin-top: clamp(2rem,5vw,4rem)}
 .filters label {display: grid; gap: .55rem; font: 500 .85rem/1.25 var(--mono)}
 .filters input,.filters select {color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 2px; min-width: 0; padding: .75rem; font: 1rem/1.3 var(--sans); min-height: 3rem}
 .filters .button {min-height: 3rem}

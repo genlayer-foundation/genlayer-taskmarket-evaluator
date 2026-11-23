@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import type { Job, Judgment } from "../../src/taskmarket/model";
 type Entry = Omit<Job, "judgments"> & { judgments: Omit<Judgment, "signed">[]; scenario?: string };
-type Feed = { mode: "simulation" | "tempo-testnet"; jobs: Entry[] };
+const networks = {
+  simulation: { label: "Local simulation", token: "simulated OUSD", tx: undefined },
+  "tempo-testnet": { label: "Tempo testnet (Moderato)", token: "test OUSD", tx: "https://explore.testnet.tempo.xyz/tx/" },
+  "tempo-mainnet": { label: "Tempo mainnet", token: "OUSD", tx: "https://explore.tempo.xyz/tx/" },
+} as const;
+type Mode = keyof typeof networks;
+type Feed = { mode: Mode; jobs: Entry[] };
 const scenarios = {
   approval: "Full approval",
   rejection: "Rejection",
@@ -18,10 +24,10 @@ const labels: Record<string, string> = {
   tracked: "Awaiting work",
   review: "Needs review",
 };
-function ousd(raw: string) {
+function ousd(raw: string, mode: Mode) {
   const value = BigInt(raw);
   const decimal = (value % 1000000n).toString().padStart(6, "0").replace(/0+$/, "");
-  return String(value / 1000000n) + (decimal ? "." + decimal : "") + " OUSD";
+  return String(value / 1000000n) + (decimal ? "." + decimal : "") + " " + networks[mode].token;
 }
 function title(j: Entry) {
   return j.scenario ? scenarios[j.scenario as keyof typeof scenarios] : j.agreement.rubricVersion;
@@ -39,9 +45,9 @@ function LinkHash({ value, base }: { value?: string; base?: string }) {
     <code title={value}>{shortened(value)}</code>
   );
 }
-function Detail({ j, simulation }: { j: Entry; simulation: boolean }) {
-  const tempo = simulation ? undefined : "https://explore.testnet.tempo.xyz/tx/";
-  const gl = simulation ? undefined : "https://scan.bradbury.genlayer.com/tx/";
+function Detail({ j, mode }: { j: Entry; mode: Mode }) {
+  const tempo = networks[mode].tx;
+  const gl = mode === "simulation" ? undefined : "https://scan.bradbury.genlayer.com/tx/";
   return (
     <article className="tm-detail">
       <header>
@@ -55,19 +61,20 @@ function Detail({ j, simulation }: { j: Entry; simulation: boolean }) {
       <div className="tm-finance">
         <div>
           <small>Escrow</small>
-          <b>{ousd(j.agreement.rewardUnits)}</b>
+          <b>{ousd(j.agreement.rewardUnits, mode)}</b>
         </div>
         <div>
           <small>Evaluator fee</small>
           <b>
             {ousd(
               String((BigInt(j.agreement.rewardUnits) * BigInt(j.agreement.evaluatorFeeBps)) / 10000n),
+              mode,
             )}
           </b>
         </div>
         <div>
           <small>Worker award</small>
-          <b>{j.decision ? ousd(j.decision.awardUnits) : "Pending"}</b>
+          <b>{j.decision ? ousd(j.decision.awardUnits, mode) : "Pending"}</b>
         </div>
       </div>
       <h3>Milestone rulings</h3>
@@ -77,7 +84,7 @@ function Detail({ j, simulation }: { j: Entry; simulation: boolean }) {
           <section className="tm-milestone" key={m.id}>
             <header>
               <strong>{m.id}</strong>
-              <span>{ousd(m.awardUnits)}</span>
+              <span>{ousd(m.awardUnits, mode)}</span>
             </header>
             <p>{m.rubric}</p>
             {r?.result && (
@@ -86,7 +93,7 @@ function Detail({ j, simulation }: { j: Entry; simulation: boolean }) {
               </p>
             )}
             <small>
-              Bradbury ruling <LinkHash value={r?.tx} base={gl} />
+              {mode === "simulation" ? "Simulated ruling" : "Bradbury testnet ruling"} <LinkHash value={r?.tx} base={gl} />
             </small>
           </section>
         );
@@ -139,7 +146,7 @@ function Detail({ j, simulation }: { j: Entry; simulation: boolean }) {
         {j.settlement && (
           <>
             <dt>{j.settlement.kind === "refund" ? "Requester refund" : "Worker payment"}</dt>
-            <dd>{ousd(j.settlement.units)}</dd>
+            <dd>{ousd(j.settlement.units, mode)}</dd>
             <dt>Recipient</dt>
             <dd>
               <code>{j.settlement.recipient}</code>
@@ -220,18 +227,20 @@ export default function Taskmarket() {
         </a>
         {feed && (
           <span className="tm-status">
-            {feed.mode === "simulation" ? "Local simulation" : "Tempo Moderato"}
+            {networks[feed.mode].label}
           </span>
         )}
       </nav>
       <main className="container tm-main court-ledger">
         <div className="page-header">
           <h1>Evaluation ledger</h1>
-          <p>
-            {feed?.mode === "simulation"
+          {feed && <p>
+            {feed.mode === "simulation"
               ? "Local examples use simulated judgments, wallets and receipts."
-              : "Follow each submission from its GenLayer ruling to its Tempo receipt."}
-          </p>
+              : feed.mode === "tempo-mainnet"
+                ? "Payments use real OUSD on Tempo mainnet. A Foundation-operated wallet relays finalized rulings from GenLayer Bradbury testnet."
+                : "Follow each submission from its GenLayer Bradbury testnet ruling to its Tempo testnet receipt."}
+          </p>}
         </div>
         {error && <p role="alert">{error}</p>}
         {feed?.mode === "simulation" && (
@@ -267,14 +276,14 @@ export default function Taskmarket() {
                 >
                   <b>{title(j)}</b>
                   <span>
-                    {labels[j.phase]} · {ousd(j.agreement.rewardUnits)}
+                    {labels[j.phase]} · {ousd(j.agreement.rewardUnits, feed.mode)}
                   </span>
                   <code>{shortened(j.id)}</code>
                 </a>
               ))}
               {!active && <p>No tasks enrolled yet.</p>}
             </aside>
-            {active && <Detail j={active} simulation={feed.mode === "simulation"} />}
+            {active && <Detail j={active} mode={feed.mode} />}
           </div>
         ) : (
           <p>Loading evaluations…</p>

@@ -34,7 +34,7 @@ class PublicReceiptsTest(unittest.TestCase):
         self.assertEqual(case["settlementTx"], self.job["settlement"]["tx"])
         self.assertEqual(case["rulings"][0]["reason"], self.job["judgments"][0]["result"]["reasoning"])
         self.assertEqual(set(case), {"id", "venue", "network", "completedAt", "brief", "verdict",
-                                     "settlementKind", "amountUnits", "settlementTx", "rulings"})
+                                     "settlementKind", "amountUnits", "settlementTx", "rulings", "rulingNetwork"})
         self.assertEqual(set(case["rulings"][0]), {"milestone", "tx", "priceUnits", "rubric", "reason", "result"})
         for private in ("private-signed-bytes", "internal-error", "submission.md"):
             self.assertNotIn(private, json.dumps(feed))
@@ -44,17 +44,24 @@ class PublicReceiptsTest(unittest.TestCase):
                 patch.object(host, "command") as upload:
             upload.side_effect = RuntimeError("storage unavailable")
             with self.assertRaises(RuntimeError):
-                host.publish_receipts(self.db, "receipts")
+                host.publish_receipts(host.receipt_feed(self.db)["evaluations"], "receipts")
             upload.side_effect = None
-            host.publish_receipts(self.db, "receipts")
-            host.publish_receipts(self.db, "receipts")
+            host.publish_receipts(host.receipt_feed(self.db)["evaluations"], "receipts")
+            host.publish_receipts(host.receipt_feed(self.db)["evaluations"], "receipts")
             self.assertEqual(upload.call_count, 2)
             refund = copy.deepcopy(self.job)
             refund["decision"]["verdict"] = "reject"
             refund["settlement"].update(kind="refund", units="1000000")
             self.save("refund", refund)
-            host.publish_receipts(self.db, "receipts")
+            host.publish_receipts(host.receipt_feed(self.db)["evaluations"], "receipts")
             self.assertEqual(upload.call_count, 3)
             public = host.receipt_feed(self.db)["evaluations"][0]
             self.assertEqual((public["verdict"], public["settlementKind"], public["amountUnits"]),
                              ("reject", "refund", "1000000"))
+
+    def test_mainnet_settlement_carries_its_testnet_ruling_label(self):
+        self.job["evidence"]["chainId"] = 4217
+        self.save("hybrid", self.job)
+        self.assertEqual(host.receipt_feed(self.db)["evaluations"], [])
+        row, = host.receipt_feed(self.db, 4217)["evaluations"]
+        self.assertEqual((row["network"], row["rulingNetwork"]), ("tempo-mainnet", "bradbury-testnet"))

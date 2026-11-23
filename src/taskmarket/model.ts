@@ -2,10 +2,18 @@ import { keccak256, stringToHex, type Address, type Hash, zeroAddress } from "vi
 import { z } from "zod";
 
 export const claimMode = keccak256(stringToHex("TMP.mode.claim")).slice(0, 10) as Hash;
-export const chainId = 42431;
-export const diamond = "0xd9f2210Dcf1AabA46804e83876606E229323F29b" as const;
-export const api = "https://testnet-api-market.daydreams.systems";
-export const rpc = "https://rpc.moderato.tempo.xyz";
+export const settlementNetwork = z.enum(["tempo-testnet", "tempo-mainnet"]).parse(
+  process.env.TASKMARKET_SETTLEMENT_NETWORK ?? "tempo-testnet",
+);
+export const mainnet = settlementNetwork === "tempo-mainnet";
+export const chainId = mainnet ? 4217 : 42431;
+export const diamond = mainnet
+  ? "0xF4f4a00011B080EbC1E599A765D8bCE7557B97e7"
+  : "0xd9f2210Dcf1AabA46804e83876606E229323F29b";
+export const api = mainnet ? "https://api.taskmarket.dev" : "https://testnet-api-market.daydreams.systems";
+export const rpc = mainnet ? "https://rpc.tempo.xyz" : "https://rpc.moderato.tempo.xyz";
+export const cliNetwork = mainnet ? "tempo" : "tempo-testnet";
+export const operatorHome = mainnet ? "data/mainnet" : "data/pilot";
 export const hash = z
   .string()
   .regex(/^0x[0-9a-f]{64}$/i)
@@ -19,6 +27,8 @@ const rate = z.number().int().min(0).max(10000);
 export const agreementSchema = z
   .object({
     version: z.literal("genlayer-taskmarket/v1"),
+    settlementNetwork: z.enum(["tempo-mainnet", "tempo-testnet"]).optional(),
+    rulingNetwork: z.literal("bradbury-testnet").optional(),
     brief: z.string().trim().min(1).max(12000),
     rubricVersion: z.string().min(1).max(80),
     rewardUnits: units,
@@ -39,6 +49,13 @@ export const agreementSchema = z
   })
   .strict()
   .superRefine((a, ctx) => {
+    if (a.settlementNetwork && a.settlementNetwork !== settlementNetwork)
+      ctx.addIssue({ code: "custom", message: "Agreement belongs to another settlement network" });
+    if (mainnet && (!a.settlementNetwork || !a.rulingNetwork || a.evaluatorFeeBps !== 0))
+      ctx.addIssue({
+        code: "custom",
+        message: "Mainnet pilot terms must name Tempo mainnet, Bradbury testnet rulings and a zero evaluator fee",
+      });
     const reward = BigInt(a.rewardUnits);
     const available = reward - (reward * BigInt(a.evaluatorFeeBps)) / 10000n;
     if (a.milestones.reduce((n, m) => n + BigInt(m.awardUnits), 0n) !== available)
@@ -65,7 +82,7 @@ export const rulingSchema = z.object({
 });
 export type Ruling = z.infer<typeof rulingSchema>;
 export type Evidence = {
-  chainId: 42431;
+  chainId: 4217 | 42431;
   diamond: Address;
   taskId: Hash;
   requester: Address;
