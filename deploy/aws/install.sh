@@ -2,7 +2,7 @@
 # Run on the designated Foundation EC2 host through Systems Manager after handing off the signer.
 set -euo pipefail
 umask 077
-: "${AWS_REGION:?}" "${BUCKET:?}" "${IMAGE:?}"
+: "${AWS_REGION:?}" "${BUCKET:?}" "${RECEIPTS_BUCKET:?}" "${IMAGE:?}"
 [[ "$IMAGE" == *@sha256:* ]]
 root=/srv/taskmarket-evaluator
 install -d -m 0700 "$root" "$root/keys" "$root/state"
@@ -40,6 +40,7 @@ After=docker.service network-online.target
 [Service]
 Type=oneshot
 Environment=AWS_REGION=$AWS_REGION
+Environment=RECEIPTS_BUCKET=$RECEIPTS_BUCKET
 ExecStart=/usr/local/sbin/taskmarket-host monitor $BUCKET
 UNIT
 cat > /etc/systemd/system/taskmarket-monitor.timer <<'UNIT'

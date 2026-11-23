@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f4ec">
+  <title>Evaluation explorer | Internet Court × Taskmarket</title>
+  <meta name="description" content="Explore completed Taskmarket evaluations. Read the agreed rubric and GenLayer rulings, then verify the payment or refund on Tempo testnet.">
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/assets/explorer.css">
+  <script src="/assets/explorer.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to evaluations</a>
+  <header class="masthead"><div class="shell masthead-inner">
+    <a class="brand" href="/" aria-label="Internet Court × Taskmarket home"><img src="/assets/internet-court.svg" alt="Internet Court"><span class="brand-divider" aria-hidden="true">×</span><span>Taskmarket</span></a>
+    <nav class="site-nav" aria-label="Primary"><a href="/">Overview</a><a href="/explorer" aria-current="page">Explorer</a></nav>
+  </div></header>
+  <main class="shell archive" id="main">
+    <div class="archive-intro">
+      <p class="kicker">Court records · Testnet</p>
+      <h1>Evaluation explorer</h1>
+      <p>Read the terms, see how each milestone was judged, and follow the money. A case appears here once its payment or refund is verified on Tempo.</p>
+    </div>
+    <form id="filters" class="filters" role="search" action="/explorer">
+      <label>Search records<input type="search" name="q" placeholder="Brief, milestone or task ID"></label>
+      <label>Venue<select name="venue"><option value="">All venues</option><option value="taskmarket">Taskmarket</option></select></label>
+      <label>Decision<select name="verdict"><option value="">All decisions</option><option value="approve">Approved</option><option value="partial">Partial award</option><option value="reject">Rejected</option></select></label>
+      <button type="submit" class="button">Search</button>
+    </form>
+    <div class="archive-meta"><p id="status" role="status">Loading court records…</p><a href="/explorer" id="clear" hidden>Clear filters</a></div>
+    <noscript>This explorer uses JavaScript to search and display receipts. <a href="/completed.json">Read the public records as JSON.</a></noscript>
+    <div id="records"></div>
+    <button class="button" type="button" id="retry" hidden>Retry loading records</button>
+  </main>
+  <footer class="site-footer"><div class="shell footer-inner"><a href="https://internetcourt.org">Internet Court</a><span>Taskmarket · Tempo testnet</span></div></footer>
+</body>
+</html>

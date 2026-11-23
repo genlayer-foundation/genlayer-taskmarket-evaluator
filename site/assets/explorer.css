@@ -1,0 +1,27 @@
+.archive {padding-block: clamp(3.5rem,7vw,7rem); min-height: 78vh}
+.archive-intro {max-width: 50rem}
+.archive h1 {font: 500 clamp(3rem,7vw,6.2rem)/1.02 var(--serif); letter-spacing: -.045em; margin: .3em 0}
+.archive-intro > p:last-child {max-width: 42rem; font-size: clamp(1.08rem,2vw,1.35rem); line-height: 1.55}
+.filters {display: grid; grid-template-columns: minmax(12rem,2fr) repeat(2,minmax(10rem,1fr)) auto; gap: 1rem; align-items: end; padding: 1.5rem 0; border-block: 1px solid var(--line); margin-top: clamp(2rem,5vw,4rem)}
+.filters label {display: grid; gap: .55rem; font: 500 .85rem/1.25 var(--mono)}
+.filters input,.filters select {color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 2px; min-width: 0; padding: .75rem; font: 1rem/1.3 var(--sans); min-height: 3rem}
+.filters .button {min-height: 3rem}
+.archive-meta,.case-meta,.case-links {display:flex; gap: 1rem; align-items: center; flex-wrap:wrap}
+.archive-meta {justify-content: space-between; margin: 1.4rem 0; font: .85rem/1.5 var(--mono); color: var(--muted)}
+.archive-meta p {margin: 0}
+.case {background: var(--cream); border: 1px solid var(--line); margin: 1.1rem 0; padding: clamp(1.25rem,3vw,2.5rem); overflow-wrap: anywhere}
+.case-meta {font: .82rem/1.4 var(--mono); color: var(--muted)}
+.case-meta strong {color: var(--red)}
+.case h2 {font: 500 clamp(1.5rem,3vw,2.4rem)/1.18 var(--serif); margin: 1.1rem 0; max-width: 54rem; letter-spacing: -.02em}
+.transfer {font: 500 1.1rem/1.45 var(--sans)}
+.case-links {row-gap:.55rem; font-size:.95rem; margin:1.2rem 0}
+.archive a:not(.button) {color:var(--red); text-decoration:underline; text-underline-offset:.2em}
+.case details {margin-top: 1.4rem; padding-top: 1rem; border-top:1px solid var(--line)}
+.case summary {cursor: pointer; font-weight:600}
+.case ol {padding-left:1.3rem; margin-bottom:0}
+.case li {padding:.4rem .5rem}
+.case h3 {font: 600 1.05rem/1.4 var(--sans); margin-bottom:.4rem}
+.case li p {line-height:1.55; margin:.5rem 0; max-width:65ch}
+.archive [hidden] {display:none}
+@media (max-width: 56rem){.filters {grid-template-columns: 1fr 1fr}}
+@media (max-width: 34rem){.filters {grid-template-columns: 1fr}.filters .button {justify-self:start}.case-meta {gap:.6rem}}

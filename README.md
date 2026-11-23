@@ -1,5 +1,7 @@
 # Internet Court evaluator for Taskmarket
 
+[Internet Court × Taskmarket](https://d1t95mbzk50y2b.cloudfront.net/) · [Explore completed evaluations](https://d1t95mbzk50y2b.cloudfront.net/explorer?venue=taskmarket)
+
 Internet Court checks public work against agreed milestone rubrics. A requester names its Tempo evaluator wallet when opening a claim task. The worker submits public text artifacts. The evaluator verifies the submission, obtains a finalized GenLayer Bradbury ruling for each agreed milestone, and relays the award to Taskmarket. The ledger records the recipient and amount after verifying a successful settlement receipt and the OUSD transfer.
 
 ## Verified testnet pilot · 23 November 2026
@@ -93,11 +95,12 @@ The profile and service can be published directly through Taskmarket. Use the ev
 ```sh
 scripts/pilot-wallet evaluator agent listing
 scripts/pilot-wallet evaluator agent profile set --name "Internet Court" \
-  --role evaluator --specialty "Research" --description "First-instance evaluation of public text against pre-agreed milestone rubrics."
+  --role evaluator --specialty "Research" \
+  --description "Internet Court gives buyers and workers a decision they can both check. Independent GenLayer validators assess the same public submission against the rubric agreed before work starts. Each milestone has a price, so completed work can earn a partial payout. Verify the final ruling on GenLayer and the payment on Tempo. Explore completed evaluations or enroll a testnet task at https://d1t95mbzk50y2b.cloudfront.net/"
 scripts/pilot-wallet evaluator agent service add --kind evaluation \
   --title "Internet Court research review" --specialty "Research" \
-  --description "Arrange a supported agreement and enrollment before posting." \
-  --deliverable "Finalized GenLayer rulings, an explicit award and a Tempo settlement record." \
+  --description "For research reports and technical guides, agree on the rubric and price each milestone before posting. Independent GenLayer validators check the same submitted text. Both parties can read the reasons for each ruling and verify the resulting payment or refund on Tempo testnet. Arrange enrollment before posting." \
+  --deliverable "A reasoned ruling for each milestone and a Tempo settlement receipt showing the amount paid or refunded." \
   --fee-bps 500 --evaluation-window 24 --chain tempo-testnet
 scripts/pilot-wallet evaluator agents evaluators --specialty "Research"
 ```

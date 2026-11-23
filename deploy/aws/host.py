@@ -51,6 +51,52 @@ def backup(database, bucket):
         marker.write_text(digest)
 
 
+def receipt_feed(database):
+    # The live worker only marks a job settled after matching its Tempo transfer.
+    # Project individual public fields. Journal records can contain signed bytes.
+    rows = database.execute("""
+        SELECT record FROM jobs
+        WHERE json_extract(record, '$.phase') = 'settled'
+          AND json_extract(record, '$.scenario') IS NULL
+          AND json_extract(record, '$.evidence.chainId') = 42431
+        ORDER BY json_extract(record, '$.updated') DESC, id
+    """)
+    evaluations = []
+    for (record,) in rows:
+        job = json.loads(record)
+        receipt = job["settlement"]
+        milestones = {m["id"]: m for m in job["agreement"]["milestones"]}
+        evaluations.append({
+            "venue": "taskmarket", "network": "tempo-testnet", "id": job["id"],
+            "completedAt": job["updated"], "brief": job["agreement"]["brief"],
+            "verdict": job["decision"]["verdict"], "settlementKind": receipt["kind"],
+            "amountUnits": receipt["units"], "settlementTx": receipt["tx"],
+            "rulings": [{
+                "milestone": j["milestone"], "tx": j["tx"],
+                "rubric": milestones[j["milestone"]]["rubric"],
+                "priceUnits": milestones[j["milestone"]]["awardUnits"],
+                "result": j["result"]["verdict"], "reason": j["result"]["reasoning"],
+            } for j in job["judgments"]],
+        })
+    return {"version": 1, "evaluations": evaluations}
+
+
+def publish_receipts(database, bucket):
+    payload = json.dumps(receipt_feed(database), ensure_ascii=False, separators=(",", ":")).encode()
+    digest = hashlib.sha256(payload).hexdigest()
+    marker = ROOT / "last-published-receipts"
+    stamp = bucket + "/" + digest
+    if marker.exists() and marker.read_text() == stamp:
+        return
+    with tempfile.NamedTemporaryFile(dir=ROOT) as handle:
+        handle.write(payload)
+        handle.flush()
+        command("aws", "s3", "cp", handle.name, "s3://" + bucket + "/completed.json",
+                "--content-type", "application/json", "--cache-control", "public, max-age=60",
+                "--only-show-errors")
+    marker.write_text(stamp)
+
+
 def approaching_deadline(job):
     if job["phase"] in ("review", "disputed"):
         return True
@@ -90,6 +136,7 @@ def monitor(bucket):
             backup(db, bucket)
             rows = db.execute("SELECT record FROM jobs WHERE json_extract(record, '$.phase') != 'settled'")
             attention = int(any(approaching_deadline(json.loads(row[0])) for row in rows))
+            publish_receipts(db, os.environ["RECEIPTS_BUCKET"])
         finally:
             db.close()
         processes = command("docker", "inspect", "--format", "{{.State.Running}}",
