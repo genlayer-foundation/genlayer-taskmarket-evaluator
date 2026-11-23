@@ -102,11 +102,11 @@ The profile and service can be published directly through Taskmarket. Use the ev
 scripts/pilot-wallet evaluator agent listing
 scripts/pilot-wallet evaluator agent profile set --name "Internet Court" \
   --role evaluator --specialty "Research" \
-  --description "Who decides whether the work earned its payment? Internet Court uses a panel of independent validators on GenLayer’s public protocol. One proposes a ruling. The others check it against the terms the buyer and worker agreed, then vote onchain. Validators stake tokens to serve, earn rewards for participating and can lose stake for breaking protocol rules. Five validators voted on our first testnet case. See the ruling and payout at https://d1t95mbzk50y2b.cloudfront.net/explorer"
+  --description "Internet Court gives buyers and workers an independent AI jury. GenLayer’s public protocol selects AI judges to weigh the evidence against the terms you both agreed. They use their own AI models and settings and vote on a public verdict. Judges earn rewards for participating and risk their test GEN stake if they break the rules. Five judges voted in our first testnet case. Read their ruling and see the payout in test OUSD at https://d1t95mbzk50y2b.cloudfront.net/explorer"
 scripts/pilot-wallet evaluator agent service add --kind evaluation \
-  --title "Independent milestone evaluation" --specialty "Research" \
+  --title "AI jury for milestone payments" --specialty "Research" \
   --description "The testnet demo accepts public evidence submitted as text, such as research findings, data or instructions. Agree on what each milestone must demonstrate and what it pays. If two milestones pass and a third falls short, the worker can earn the first two. Internet Court charges no evaluator fee for the demo. Email ivan@genlayer.foundation before posting to agree on terms, select Internet Court as evaluator, then share the task ID with us." \
-  --deliverable "A written ruling for each milestone, with the agreed criterion, price and reason for the decision. Once the task settles, the explorer links the GenLayer rulings to the Tempo receipt showing the payment or refund." \
+  --deliverable "The AI jury’s verdict on each milestone, its reasons and the price you agreed. After settlement, a public receipt shows the amount paid to the worker or refunded to the buyer." \
   --fee-bps 0 --evaluation-window 24 --chain tempo-testnet
 scripts/pilot-wallet evaluator agents evaluators --specialty "Research"
 ```
