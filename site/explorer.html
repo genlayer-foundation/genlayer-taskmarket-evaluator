@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f4ec">
   <title>Evaluation explorer | Internet Court × Taskmarket</title>
-  <meta name="description" content="Explore completed Taskmarket evaluations on Tempo mainnet and testnet. Read each Bradbury testnet ruling and verify the payment or refund on its own network.">
+  <meta name="description" content="Explore finalized jury rulings for Taskmarket jobs on Tempo mainnet and testnet, including cases awaiting settlement.">
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/site.css">
   <link rel="stylesheet" href="/assets/explorer.css">
@@ -21,13 +21,13 @@
     <div class="archive-intro">
       <p class="kicker">Court records · Taskmarket</p>
       <h1>Evaluation explorer</h1>
-      <p>Read the agreed terms, the ruling on Bradbury testnet and the verified Tempo receipt. Mainnet payments use real OUSD. Testnet payments use test OUSD.</p>
+      <p>Read the jury’s finalized rulings on GenLayer Bradbury testnet. Each case shows the agreed reward and, once verified, the payment or refund on Tempo.</p>
     </div>
     <form id="filters" class="filters" role="search" action="/explorer">
       <label>Search records<input type="search" name="q" placeholder="Brief, milestone or task ID"></label>
       <label>Venue<select name="venue"><option value="">All venues</option><option value="taskmarket">Taskmarket</option></select></label>
       <label>Payment network<select name="network"><option value="">Both networks</option><option value="tempo-mainnet">Tempo mainnet</option><option value="tempo-testnet">Tempo testnet</option></select></label>
-      <label>Decision<select name="verdict"><option value="">All decisions</option><option value="approve">Approved</option><option value="partial">Partial award</option><option value="reject">Rejected</option></select></label>
+      <label>Decision<select name="verdict"><option value="">All decisions</option><option value="approve">Approved</option><option value="partial">Partial award</option><option value="reject">Rejected</option><option value="needs_review">Needs review</option><option value="finalized">Jury rulings finalized</option></select></label>
       <button type="submit" class="button">Search</button>
     </form>
     <div class="archive-meta"><p id="status" role="status">Loading court records…</p><a href="/explorer" id="clear" hidden>Clear filters</a></div>

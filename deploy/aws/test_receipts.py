@@ -65,3 +65,29 @@ class PublicReceiptsTest(unittest.TestCase):
         self.assertEqual(host.receipt_feed(self.db)["evaluations"], [])
         row, = host.receipt_feed(self.db, 4217)["evaluations"]
         self.assertEqual((row["network"], row["rulingNetwork"]), ("tempo-mainnet", "bradbury-testnet"))
+
+    def test_mainnet_finalized_review_is_visible_without_a_transfer(self):
+        job = copy.deepcopy(self.job)
+        job["evidence"]["chainId"] = 4217
+        job["phase"] = "review"
+        job.pop("decision")
+        job.pop("settlement")
+        job["judgments"][0]["result"]["verdict"] = "needs_review"
+        job["judgments"][0]["signed"] = "private-signed-bytes"
+        self.save("review", job)
+        self.save("demo", {**job, "scenario": "uncertain"})
+        self.save("incomplete", {**job, "judgments": [{"milestone": "guide"}]})
+        feed = host.receipt_feed(self.db, 4217)
+        self.assertEqual(feed["evaluations"], [])
+        case, = feed["unsettled"]
+        self.assertEqual((case["network"], case["verdict"], case["rewardUnits"]),
+                         ("tempo-mainnet", "needs_review", job["agreement"]["rewardUnits"]))
+        self.assertNotIn("settlementTx", case)
+        self.assertNotIn("amountUnits", case)
+        self.assertNotIn("private-signed-bytes", json.dumps(case))
+        self.assertEqual(host.receipt_feed(self.db)["unsettled"], [])
+        self.db.execute("UPDATE jobs SET record = ? WHERE id = 'review'", (json.dumps({
+            **self.job, "evidence": job["evidence"]}),))
+        settled = host.receipt_feed(self.db, 4217)
+        self.assertEqual(settled["unsettled"], [])
+        self.assertEqual(len(settled["evaluations"]), 1)
