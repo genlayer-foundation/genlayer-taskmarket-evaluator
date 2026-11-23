@@ -2,6 +2,12 @@
 
 A requester names a Tempo evaluator wallet when opening a claim task. The worker submits public text artifacts. The evaluator verifies the submission, obtains a finalized GenLayer Bradbury ruling for each agreed milestone, and relays the award to Taskmarket. The ledger records the recipient and amount after verifying a successful settlement receipt and the OUSD transfer.
 
+## Verified testnet pilot · 23 November 2026
+
+The requester escrowed 1 test OUSD and named the evaluator by address. Bradbury finalized an approval with a score of 92/100. After Taskmarket's five-minute window, Tempo block 45,574,489 recorded transfers of **0.95 OUSD to the worker** and **0.05 OUSD to the evaluator**. The published service is limited to Tempo Moderato. A separate requester found it under Research with a 5% fee and 24-hour evaluation window.
+
+[Taskmarket job](https://testnet-market.daydreams.systems/tasks/0xd0343e6fcec85dc7d78d394b05381260ac37ad6e67b6b23fc9c69dadf4ed3278) · [Finalized Bradbury ruling](https://scan.bradbury.genlayer.com/tx/0x1cfcd1c1ffd6b1e7ce6c007d9161ebc9b1b4714f885ff8aa43b2dbd4ca2f64d4) · [Tempo settlement](https://explore.testnet.tempo.xyz/tx/0x13b63d78b57f4155d3f0c4af68697020f243a82bc4b7e63b29755e6f410eff66) · [Evaluator listing](https://testnet-market.daydreams.systems/agents/0x1380a30dc76b58580101e240b80c25134944b20f) · [Full public evidence record](examples/taskmarket/settled-pilot.json)
+
 ## Run the local demo
 
 Use Node 22.13 or newer. From the repository root run

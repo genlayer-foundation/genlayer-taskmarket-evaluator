@@ -1,0 +1,75 @@
+{
+  "id": "0xd0343e6fcec85dc7d78d394b05381260ac37ad6e67b6b23fc9c69dadf4ed3278",
+  "phase": "settled",
+  "agreement": {
+    "version": "genlayer-taskmarket/v1",
+    "brief": "Explain how a requester selects an evaluator at task creation. Deliver a public Markdown file with the Taskmarket command and an explanation of the appeal window.",
+    "rubricVersion": "fixed-v1",
+    "rewardUnits": "1000000",
+    "evaluatorFeeBps": 500,
+    "needsReview": "withhold-verdict",
+    "milestones": [
+      {
+        "id": "guide",
+        "rubric": "Approve a correct task create command naming the evaluator and a correct explanation of when the worker can appeal. Reject missing or incorrect work. Score 70–100 for a pass, 40–69 for uncertainty, 0–39 for a fail.",
+        "awardUnits": "950000"
+      }
+    ]
+  },
+  "judgments": [
+    {
+      "milestone": "guide",
+      "evmTx": "0x14e924c9ed6718b6fd29fec25dbb982d52c1117d6914bfd491208447bd31867e",
+      "tx": "0x1cfcd1c1ffd6b1e7ce6c007d9161ebc9b1b4714f885ff8aa43b2dbd4ca2f64d4",
+      "result": {
+        "verdict": "approve",
+        "score": 92,
+        "confidence": 85,
+        "success": true,
+        "reasoning": "The submission includes a task create command that names the evaluator via --evaluator and sets an appeal window, and it correctly explains that the worker can appeal during that window when a dispute resolver is assigned, with finalization otherwise. It satisfies the rubric.",
+        "rubric_version": "fixed-v1"
+      },
+      "contract": "0x7757f18b748b1019c318d319da229acce2ab1a7d"
+    }
+  ],
+  "updated": "2026-11-23T13:12:18.927Z",
+  "evidence": {
+    "chainId": 42431,
+    "diamond": "0xd9f2210Dcf1AabA46804e83876606E229323F29b",
+    "taskId": "0xd0343e6fcec85dc7d78d394b05381260ac37ad6e67b6b23fc9c69dadf4ed3278",
+    "worker": "0xfa3353b21e13e41f4e221ad6010ff782c7bcc390",
+    "requester": "0x8d1d58d5869b360156ce574239528226c80657bd",
+    "evaluator": "0x1380a30dc76b58580101e240b80c25134944b20f",
+    "deliverable": "0x0509acd8e3a57196090b70f5045c501f6f40e54e098b87b639b3f31b11511ba0",
+    "description": "{\"version\":\"genlayer-taskmarket/v1\",\"brief\":\"Explain how a requester selects an evaluator at task creation. Deliver a public Markdown file with the Taskmarket command and an explanation of the appeal window.\",\"rubricVersion\":\"fixed-v1\",\"rewardUnits\":\"1000000\",\"evaluatorFeeBps\":500,\"needsReview\":\"withhold-verdict\",\"milestones\":[{\"id\":\"guide\",\"rubric\":\"Approve a correct task create command naming the evaluator and a correct explanation of when the worker can appeal. Reject missing or incorrect work. Score 70–100 for a pass, 40–69 for uncertainty, 0–39 for a fail.\",\"awardUnits\":\"950000\"}]}",
+    "briefHash": "0x75e636643aeeeda05c18342c5db1cc10a2a26c8a4253f3689a87b52c407a0fd0",
+    "submissionId": "6c0d7bf8-d249-4505-aeee-d36a7340ef31",
+    "submitTx": "0x714cabd36569a76f1bc16a90676ae92ba160f99d3febb19a6319c9d8583ed4ac",
+    "submitBlock": "45573577",
+    "manifest": "{\"artifacts\":[{\"displayOrder\":0,\"fileName\":\"submission.md\",\"keccak256Hash\":\"0xb11aff3bc132a98410b12a8e8923f8745596a67d057b1c76202101272d1488a3\",\"mediaKind\":\"text\",\"mimeType\":\"text/markdown\",\"role\":\"final\",\"sha256Hash\":\"0393e30b410e1c44fb8cb51114b0f06647b3174d702ba8f89b2a7dd617afd158\",\"sizeBytes\":602}],\"version\":\"taskmarket-artifacts-v1\"}",
+    "files": [
+      {
+        "name": "submission.md",
+        "keccak256": "0xb11aff3bc132a98410b12a8e8923f8745596a67d057b1c76202101272d1488a3",
+        "text": "A requester selects the evaluator when opening the claim task. For example, with EVALUATOR set to the chosen wallet address:\n\n    taskmarket --network tempo-testnet task create --description \"Review a public guide\" --mode claim --duration 72 --reward 1 --evaluator \"$EVALUATOR\" --evaluation-window 24 --appeal-window 1\n\nAfter submission the evaluator names the worker and award. If a dispute resolver was assigned, the worker can appeal during the appeal window. Otherwise, or if no eligible worker appeals before that window closes, anyone can finalize the verdict. Settlement occurs at finalization.\n"
+      }
+    ]
+  },
+  "decision": {
+    "verdict": "approve",
+    "worker": "0xfa3353b21e13e41f4e221ad6010ff782c7bcc390",
+    "awardUnits": "950000",
+    "score": 920,
+    "confidence": 850,
+    "evidenceHash": "0xcf6d9758efec84411a037a0c3172ffd8a3ab426a995a1b13ceafc21e1de3b8c9"
+  },
+  "evaluateTx": "0x50d50a3c271e1ee6197c7b18f330d3ef8da070e18409e32d3327b151d67bb34e",
+  "finalizeTx": "0x13b63d78b57f4155d3f0c4af68697020f243a82bc4b7e63b29755e6f410eff66",
+  "settlement": {
+    "tx": "0x13b63d78b57f4155d3f0c4af68697020f243a82bc4b7e63b29755e6f410eff66",
+    "block": "45574489",
+    "recipient": "0xfa3353b21e13e41f4e221ad6010ff782c7bcc390",
+    "units": "950000",
+    "kind": "payment"
+  }
+}
