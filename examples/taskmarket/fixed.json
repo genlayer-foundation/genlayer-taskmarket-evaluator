@@ -3,13 +3,13 @@
   "brief": "Explain how a requester selects an evaluator at task creation. Deliver a public Markdown file with the Taskmarket command and an explanation of the appeal window.",
   "rubricVersion": "fixed-v1",
   "rewardUnits": "1000000",
-  "evaluatorFeeBps": 500,
+  "evaluatorFeeBps": 0,
   "needsReview": "withhold-verdict",
   "milestones": [
     {
       "id": "guide",
       "rubric": "Approve a correct task create command naming the evaluator and a correct explanation of when the worker can appeal. Reject missing or incorrect work. Score 70–100 for a pass, 40–69 for uncertainty, 0–39 for a fail.",
-      "awardUnits": "950000"
+      "awardUnits": "1000000"
     }
   ]
 }

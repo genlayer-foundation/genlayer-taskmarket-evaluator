@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { z } from "zod";
 import { zeroHash, type Address, type Hash } from "viem";
-import { agreementSchema, claimMode, commitment, hash } from "./model.js";
+import { agreementSchema, claimMode, commitment, hash, type Agreement } from "./model.js";
 import { cli, state, wallet, minimumAppealSeconds } from "./tempo.js";
 import { Journal } from "./store.js";
 import { taskDetail } from "./evidence.js";
@@ -17,17 +17,25 @@ export async function preparePilot(db: Journal, bradburyWallet: Address) {
   );
   if (new Set([requester, worker, evaluator]).size !== 3)
     throw new Error("The pilot needs three separate registered test wallets");
-  const agreement = agreementSchema.parse(
+  let agreement = agreementSchema.parse(
     JSON.parse(readFileSync(resolve("examples/taskmarket/fixed.json"), "utf8")),
   );
-  const description = JSON.stringify(agreement);
-  const intent = commitment({ network: 42431, requester, worker, evaluator, bradburyWallet, agreement });
+  const intentFor = (terms: Agreement) =>
+    commitment({ network: 42431, requester, worker, evaluator, bradburyWallet, agreement: terms });
   db.db.exec(
     "CREATE TABLE IF NOT EXISTS pilot (slot INTEGER PRIMARY KEY CHECK(slot=1), intent TEXT NOT NULL, task TEXT, claimed INTEGER DEFAULT 0, submitted INTEGER DEFAULT 0)",
   );
-  db.db.prepare("INSERT OR IGNORE INTO pilot(slot,intent) VALUES (1,?)").run(intent);
+  db.db.prepare("INSERT OR IGNORE INTO pilot(slot,intent) VALUES (1,?)").run(intentFor(agreement));
   const record = db.db.prepare("SELECT * FROM pilot WHERE slot=1").get()!;
-  if (record.intent !== intent) throw new Error("Pilot wallets or agreement differ from the saved run");
+  if (record.intent !== intentFor(agreement)) {
+    // A run that started before the fee waiver must retain its original terms and request key.
+    const original = JSON.parse(readFileSync(resolve("examples/taskmarket/settled-pilot.json"), "utf8"));
+    agreement = agreementSchema.parse(original.agreement);
+    if (record.intent !== intentFor(agreement))
+      throw new Error("Pilot wallets or agreement differ from the saved run");
+  }
+  const description = JSON.stringify(agreement);
+  const intent = intentFor(agreement);
   let id: Hash;
   if (record.task) id = hash.parse(record.task);
   else {
@@ -59,7 +67,7 @@ export async function preparePilot(db: Journal, bradburyWallet: Address) {
         "--evaluator",
         evaluator,
         "--evaluator-fee-bps",
-        "500",
+        String(agreement.evaluatorFeeBps),
         "--evaluation-window",
         "24",
         "--appeal-window",

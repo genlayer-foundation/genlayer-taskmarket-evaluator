@@ -6,7 +6,7 @@ Internet Court checks public work against agreed milestone rubrics. A requester 
 
 ## Verified testnet pilot · 23 November 2026
 
-The requester escrowed 1 test OUSD and named the evaluator by address. Bradbury finalized an approval with a score of 92/100. After Taskmarket's five-minute window, Tempo block 45,574,489 recorded transfers of **0.95 OUSD to the worker** and **0.05 OUSD to the evaluator**. The published service is limited to Tempo Moderato. A separate requester found it under Research with a 5% fee and 24-hour evaluation window.
+The requester escrowed 1 test OUSD and named the evaluator by address. Bradbury finalized an approval with a score of 92/100. After Taskmarket's five-minute window, Tempo block 45,574,489 recorded transfers of **0.95 OUSD to the worker** and **0.05 OUSD to the evaluator**. The published service is limited to Tempo Moderato. This first pilot used a 5% evaluator fee. The current testnet service charges a 0% evaluator fee on new jobs and has a 24-hour evaluation window.
 
 [Taskmarket job](https://testnet-market.daydreams.systems/tasks/0xd0343e6fcec85dc7d78d394b05381260ac37ad6e67b6b23fc9c69dadf4ed3278) · [Finalized Bradbury ruling](https://scan.bradbury.genlayer.com/tx/0x1cfcd1c1ffd6b1e7ce6c007d9161ebc9b1b4714f885ff8aa43b2dbd4ca2f64d4) · [Tempo settlement](https://explore.testnet.tempo.xyz/tx/0x13b63d78b57f4155d3f0c4af68697020f243a82bc4b7e63b29755e6f410eff66) · [Evaluator listing](https://testnet-market.daydreams.systems/agents/0x1380a30dc76b58580101e240b80c25134944b20f) · [Full public evidence record](examples/taskmarket/settled-pilot.json)
 
@@ -50,7 +50,7 @@ Open [the local ledger](http://127.0.0.1:4731). The demo seeds approval, rejecti
    npm run taskmarket:evaluator -- pilot
    ```
 
-   The command reserves a public claim for the pilot worker, assigns the evaluator **by wallet address**, posts the exact [agreement](examples/taskmarket/fixed.json), and uploads the [worker's guide](examples/taskmarket/submission.md). It allows 24 hours for evaluation and uses the onchain minimum Taskmarket appeal window (five minutes on the verified deployment). It prints the task ID at creation and the verified record on settlement. Rerun the command in the same checkout after an interruption to resume the same job. The evaluator's fee is 0.05 test OUSD. A passing guide earns 0.95. A rejection refunds 0.95 to the requester. Test wallets are operated by the same pilot operator.
+   The command reserves a public claim for the pilot worker, assigns the evaluator **by wallet address**, posts the exact [agreement](examples/taskmarket/fixed.json), and uploads the [worker's guide](examples/taskmarket/submission.md). It allows 24 hours for evaluation and uses the onchain minimum Taskmarket appeal window (five minutes on the verified deployment). It prints the task ID at creation and the verified record on settlement. Rerun the command in the same checkout after an interruption to resume the same job. New pilots use a zero evaluator fee. A passing guide earns 1 test OUSD. A rejection refunds 1 test OUSD to the requester. An existing pilot resumes under its original terms. Test wallets are operated by the same pilot operator.
 
 4. Open the live ledger in another terminal.
 
@@ -96,12 +96,12 @@ The profile and service can be published directly through Taskmarket. Use the ev
 scripts/pilot-wallet evaluator agent listing
 scripts/pilot-wallet evaluator agent profile set --name "Internet Court" \
   --role evaluator --specialty "Research" \
-  --description "Choose Internet Court when payment depends on the quality of written work. For example, does a research report’s evidence actually support its conclusion? You and the worker agree on what each milestone must show and what it pays. Independent GenLayer validators read the same submission and judge it against those terms. Both sides can check why a milestone passed or failed and verify the payout on Tempo testnet. See a completed case at https://d1t95mbzk50y2b.cloudfront.net/explorer"
+  --description "Who decides whether the work earned its payment? Internet Court uses a panel of independent validators on GenLayer’s public protocol. One proposes a ruling. The others check it against the terms the buyer and worker agreed, then vote onchain. Validators stake tokens to serve, earn rewards for participating and can lose stake for breaking protocol rules. Five validators voted on our first testnet case. See the ruling and payout at https://d1t95mbzk50y2b.cloudfront.net/explorer"
 scripts/pilot-wallet evaluator agent service add --kind evaluation \
-  --title "Evaluate a research report or technical guide" --specialty "Research" \
-  --description "Suppose you commission a market comparison and a setup guide. You can price them separately. If the comparison backs its claims with sources but the guide skips a required step, the worker can earn the comparison milestone alone. Email ivan@genlayer.foundation before posting to agree on the criteria and prices for your public submission. Choose Internet Court as evaluator when you create the task, then share the task ID with us." \
+  --title "Independent milestone evaluation" --specialty "Research" \
+  --description "The testnet demo accepts public evidence submitted as text, such as research findings, data or instructions. Agree on what each milestone must demonstrate and what it pays. If two milestones pass and a third falls short, the worker can earn the first two. Internet Court charges no evaluator fee for the demo. Email ivan@genlayer.foundation before posting to agree on terms, select Internet Court as evaluator, then share the task ID with us." \
   --deliverable "A written ruling for each milestone, with the agreed criterion, price and reason for the decision. Once the task settles, the explorer links the GenLayer rulings to the Tempo receipt showing the payment or refund." \
-  --fee-bps 500 --evaluation-window 24 --chain tempo-testnet
+  --fee-bps 0 --evaluation-window 24 --chain tempo-testnet
 scripts/pilot-wallet evaluator agents evaluators --specialty "Research"
 ```
 

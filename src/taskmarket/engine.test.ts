@@ -39,10 +39,10 @@ describe("Taskmarket worker", () => {
     expect(operationId("finalize-task-a")).not.toBe(id);
   });
   it.each([
-    ["approval", "approve", "950000", "payment"],
+    ["approval", "approve", "1000000", "payment"],
     ["rejection", "reject", "0", "refund"],
     ["partial", "partial", "30000000", "payment"],
-    ["recovery", "approve", "950000", "payment"],
+    ["recovery", "approve", "1000000", "payment"],
   ] as const)("settles %s with its explicit award", async (s, verdict, award, kind) => {
     const j = await runExample(db, s);
     expect(j.phase).toBe("settled");
@@ -87,7 +87,7 @@ describe("Taskmarket worker", () => {
     expect(h.get().settlement).toBeUndefined();
     await h.tick();
     await h.tick();
-    expect(h.get().settlement?.units).toBe("950000");
+    expect(h.get().settlement?.units).toBe("1000000");
     expect(h.counts()).toEqual({ writes: 1, deployments: 1, finalizations: 1 });
   });
   it("retries a temporary read outage and hands an appeal to the resolver", async () => {
@@ -138,7 +138,7 @@ describe("Taskmarket worker", () => {
       id = digest("job");
     db.track(id, agreement);
     db.track(id, agreement);
-    expect(() => agreementSchema.parse({ ...agreement, evaluatorFeeBps: 0 })).toThrow();
+    expect(() => agreementSchema.parse({ ...agreement, evaluatorFeeBps: 500 })).toThrow();
     expect(() => db.track(id, { ...agreement, brief: "changed" })).toThrow();
     db.takeWorkerLock();
     const other = new Journal(join(dir, "journal"));
@@ -166,12 +166,12 @@ describe("Taskmarket worker", () => {
         eventName: "TaskCompleted",
         args: { taskId: j.id, requester, worker },
       }),
-      data: encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }], [950000n, 0n]),
+      data: encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }], [1000000n, 0n]),
     };
     const transfer = {
       address: "0x20c0000000000000000000006a37da5c996874be",
       topics: encodeEventTopics({ abi, eventName: "Transfer", args: { from: diamond, to: worker } }),
-      data: encodeAbiParameters([{ type: "uint256" }], [950000n]),
+      data: encodeAbiParameters([{ type: "uint256" }], [1000000n]),
     };
     const receipt = (logs: unknown[]) =>
       ({
@@ -180,7 +180,7 @@ describe("Taskmarket worker", () => {
         blockNumber: 5n,
         status: "success",
       }) as Parameters<typeof verifySettlement>[1];
-    expect(verifySettlement(j, receipt([paid, transfer])).units).toBe("950000");
+    expect(verifySettlement(j, receipt([paid, transfer])).units).toBe("1000000");
     expect(() => verifySettlement(j, receipt([paid]))).toThrow();
     expect(() => verifySettlement(j, receipt([paid, { ...transfer, address: worker }]))).toThrow();
     expect(() => verifySettlement({ ...j, id: zeroHash } as Job, receipt([paid, transfer]))).toThrow();
