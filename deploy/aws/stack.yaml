@@ -122,7 +122,12 @@ Resources:
         function handler(event) {
           var request = event.request;
           if (request.uri === '/explorer' || request.uri === '/explorer/') {
-            request.uri = '/explorer.html';
+            var network = request.querystring.network;
+            if (network && !network.multiValue && (network.value === 'tempo-mainnet' || network.value === 'tempo-testnet')) {
+              request.uri = '/assets/previews/' + network.value + '.html';
+            } else {
+              request.uri = '/explorer.html';
+            }
           }
           if (request.uri === '/case' || request.uri === '/case/') {
             request.uri = '/case.html';

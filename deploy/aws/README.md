@@ -59,6 +59,9 @@ To release a site change, run the following from the repository root with the Fo
 ```sh
 receipts=$(aws cloudformation describe-stack-resource --stack-name "$stack" --logical-resource-id Receipts --query StackResourceDetail.PhysicalResourceId --output text)
 aws s3 cp site/assets/ "s3://$receipts/assets/" --recursive --cache-control "public, max-age=60"
+preview_dir=$(mktemp -d)
+python3 deploy/aws/render_explorer_previews.py "$preview_dir"
+aws s3 cp "$preview_dir/" "s3://$receipts/assets/previews/" --recursive --content-type text/html --cache-control "public, max-age=60"
 aws s3 cp site/explorer.html "s3://$receipts/explorer.html" --content-type text/html --cache-control "public, max-age=60"
 aws s3 cp site/case.html "s3://$receipts/case.html" --content-type text/html --cache-control "public, max-age=60"
 aws s3 cp site/index.html "s3://$receipts/index.html" --content-type text/html --cache-control "public, max-age=60"
