@@ -17,6 +17,7 @@ import {
   type Hash,
 } from "viem";
 import { address, commitment, Review, rulingSchema, type Job, type Judgment } from "./model.js";
+import { webSources } from "./webSources.js";
 
 const nodeEndpoint = "https://rpc-bradbury.genlayer.com";
 export const code = readFileSync(
@@ -43,6 +44,9 @@ export function inputs(job: Job, j: Judgment) {
     submissionId: e.submissionId,
     submitTx: e.submitTx,
     evidenceHash: commitment(e),
+    ...(milestone.webDomains && {
+      web: webSources(milestone.webDomains, [milestone.rubric, ...e.files.map(f => f.text)]),
+    }),
   };
   return [job.agreement.brief, JSON.stringify(e.files), milestone.rubric, JSON.stringify(metadata)];
 }

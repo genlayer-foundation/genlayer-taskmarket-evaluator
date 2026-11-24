@@ -59,6 +59,12 @@ class PublicReceiptsTest(unittest.TestCase):
             self.assertEqual((public["verdict"], public["settlementKind"], public["amountUnits"]),
                              ("reject", "refund", "1000000"))
 
+    def test_public_milestone_reports_agreed_web_access(self):
+        self.job["agreement"]["milestones"][0]["webDomains"] = ["docs.genlayer.com"]
+        self.save("live", self.job)
+        ruling = host.receipt_feed(self.db)["evaluations"][0]["rulings"][0]
+        self.assertEqual(ruling["webDomains"], ["docs.genlayer.com"])
+
     def test_mainnet_settlement_carries_its_testnet_ruling_label(self):
         self.job["evidence"]["chainId"] = 4217
         self.save("hybrid", self.job)

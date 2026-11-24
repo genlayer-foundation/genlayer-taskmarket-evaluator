@@ -1,4 +1,4 @@
-import {finalOutcome, juryLabels, juryStage, milestoneLabel} from "./jury.mjs";
+import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel} from "./jury.mjs";
 
 const form = document.querySelector("#filters");
 const statusLine = document.querySelector("#status");
@@ -57,6 +57,7 @@ function validRecord(row, group) {
       !(settled ? ["approve","partial","reject"] : ["approve","partial","reject","needs_review","finalized"]).includes(row.verdict)) return false;
   return Array.isArray(row.rulings) && row.rulings.length > 0 && row.rulings.every(m => {
     if (!m || typeof m.milestone !== "string" || typeof m.rubric !== "string" || !units.test(m.priceUnits)) return false;
+    if (m.webDomains !== undefined && !(Array.isArray(m.webDomains) && m.webDomains.every(h => typeof h === "string"))) return false;
     if (active && m.result === undefined) return m.tx === undefined || transaction.test(m.tx);
     return transaction.test(m.tx) && typeof m.reason === "string" && ["approve","reject","needs_review","error"].includes(m.result);
   });
@@ -106,6 +107,7 @@ function caseCard(row, stage, ms, inProgress, stale, expanded) {
   row.rulings.forEach((r, i) => {
     const m = ms[i], item = element("li");
     item.append(element("h3", r.milestone + " · " + milestoneLabel(m)), element("p", r.rubric),
+      element("p", evidenceLabel(r.webDomains)),
       element("p", "Agreed price " + money(r.priceUnits, network.token)));
     if (ms.length > 1 && transaction.test(m.tx)) item.append(link("Inspect jury transaction", "https://scan.bradbury.genlayer.com/tx/" + m.tx));
     items.append(item);

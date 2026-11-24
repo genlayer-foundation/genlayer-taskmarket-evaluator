@@ -14,6 +14,7 @@ describe("participant appeal notices", () => {
     try {
       const job: Job = JSON.parse(readFileSync("examples/taskmarket/settled-pilot.json","utf8"));
       job.phase = "evaluating";
+      job.agreement.milestones[0].webDomains = ["docs.genlayer.com"];
       const {tx, milestone} = job.judgments[0];
       job.judgments = [{milestone}];
       const snapshots: LiveCase[] = [];
@@ -34,6 +35,7 @@ describe("participant appeal notices", () => {
       expect(io.send).not.toHaveBeenCalled();
       await service.update(job); await service.drain();
       expect(service.ready(job)).toBe(false);
+      expect(snapshots.at(-1)?.milestones[0].webDomains).toEqual(["docs.genlayer.com"]);
       blocked = false; clock += 6000;
       await service.update(job); await service.drain();
       expect(service.ready(job)).toBe(true);

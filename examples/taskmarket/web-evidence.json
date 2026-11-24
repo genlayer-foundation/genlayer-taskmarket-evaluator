@@ -1,0 +1,20 @@
+{
+  "version": "genlayer-taskmarket/v1",
+  "brief": "Verify a public payout receipt\nSubmit the transaction URL, payout amount, recipient and date for a completed payment on Tempo testnet.",
+  "rubricVersion": "web-receipt-v1",
+  "rewardUnits": "1000000",
+  "evaluatorFeeBps": 0,
+  "needsReview": "withhold-verdict",
+  "milestones": [
+    {
+      "id": "receipt",
+      "rubric": "Check that the cited receipt shows a completed token payment to the named recipient on the given date and for the claimed amount. Send for review if the visible evidence is inconclusive. Escrow funding alone does not establish a payout.",
+      "awardUnits": "1000000",
+      "webDomains": [
+        "explore.testnet.tempo.xyz"
+      ]
+    }
+  ],
+  "settlementNetwork": "tempo-testnet",
+  "rulingNetwork": "bradbury-testnet"
+}

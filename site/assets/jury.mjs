@@ -7,6 +7,12 @@ export const juryLabels = {
   paused: "Evaluation paused", finalizing: "Finalizing evaluation",
 };
 
+export function evidenceLabel(domains) {
+  return Array.isArray(domains) && domains.length
+    ? "The jury reads the submitted files and cited public pages from " + domains.join(", ") + "."
+    : "The jury reads the submitted files only. Links are treated as text.";
+}
+
 export function milestoneLabel(m) {
   if (m.status === "Finalized") return juryLabels[m.result?.verdict] || "Ruling finalized";
   if (m.status === "Accepted" && m.decision) {

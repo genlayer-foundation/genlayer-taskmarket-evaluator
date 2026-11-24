@@ -14,7 +14,10 @@ export function taskDescription(agreement: Agreement): string {
   return [
     title,
     body,
-    ...agreement.milestones.map((m) => `Milestone · ${m.id} · ${amount(m.awardUnits)}\n${m.rubric}`),
+    ...agreement.milestones.map((m) => [
+      `Milestone · ${m.id} · ${amount(m.awardUnits)}\n${m.rubric}`,
+      ...(m.webDomains ? [`Web evidence: cite 1–3 public HTTPS pages from ${m.webDomains.join(", ")} in this rubric or your submission. Each judge reads up to 6,000 characters per page. Missing or unreadable sources require review.`] : []),
+    ].join("\n")),
     [
       `Escrow: ${amount(agreement.rewardUnits)} on Tempo ${mainnet ? "mainnet" : "testnet"}`,
       `Evaluator fee: ${formatUnits(BigInt(agreement.evaluatorFeeBps), 2)}%`,

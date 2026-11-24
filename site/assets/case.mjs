@@ -1,4 +1,4 @@
-import {finalOutcome, juryLabels, juryStage, milestoneLabel} from "./jury.mjs";
+import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel} from "./jury.mjs";
 const query = new URLSearchParams(location.search);
 const network = query.get("network"), task = query.get("task");
 const validId = value => /^0x[a-f0-9]{64}$/.test(value || "");
@@ -17,7 +17,7 @@ function render(data) {
   list.replaceChildren();
   for (const m of data.milestones) {
     const card = el("article", ""); card.className = "live-milestone";
-    card.append(el("h2",milestoneLabel(m)), el("p",m.milestone));
+    card.append(el("h2",milestoneLabel(m)), el("p",m.milestone), el("p",evidenceLabel(m.webDomains)));
     if (m.result && (m.status === "Finalized" || (m.status === "Accepted" && m.decision)))
       card.append(el("h3","Jury reasoning"),el("p",m.result.reasoning));
     if (validId(m.tx)) {

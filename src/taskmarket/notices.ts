@@ -8,7 +8,7 @@ import { cli } from "./tempo.js";
 import type { Journal } from "./store.js";
 
 const appealGuide = "Either party can ask a larger GenLayer jury to review a provisional ruling. Have a Bradbury wallet funded with test GEN before judging starts. The quote covers the bond and extra jury work. Allow for gas too. A failed appeal can cost you the bond. The appeal must reach the chain before its deadline. A Taskmarket appeal is separate.";
-export type CaseMilestone = LiveRuling & { milestone: string; tx?: Hash };
+export type CaseMilestone = LiveRuling & { milestone: string; tx?: Hash; webDomains?: string[] };
 export type LiveCase = { id: Hash; network: string; phase: string; milestones: CaseMilestone[] };
 type IO = {
   base: string;
@@ -116,7 +116,11 @@ export class CaseNotices {
         (m.status === "Finalized" && (!m.result || recipients.every(w => this.delivered(job.id,"final:" + m.tx,w)))));
       if (previous.phase === job.phase && complete) return;
     }
-    const milestones = await Promise.all(job.judgments.map(j => this.milestone(job,j,previous?.milestones.find(m => m.milestone === j.milestone))));
+    const milestones = await Promise.all(job.judgments.map(async j => {
+      const record = await this.milestone(job, j, previous?.milestones.find(m => m.milestone === j.milestone));
+      const domains = job.agreement.milestones.find(m => m.id === j.milestone)?.webDomains;
+      return domains ? { ...record, webDomains: domains } : record;
+    }));
     const record: LiveCase = { id: job.id, network: settlementNetwork, phase: job.phase, milestones };
     const body = JSON.stringify(record);
     if (body !== saved?.body) {

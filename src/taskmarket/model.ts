@@ -1,5 +1,6 @@
 import { keccak256, stringToHex, type Address, type Hash, zeroAddress } from "viem";
 import { z } from "zod";
+import { webDomains } from "./webSources.js";
 
 export const claimMode = keccak256(stringToHex("TMP.mode.claim")).slice(0, 10) as Hash;
 export const settlementNetwork = z.enum(["tempo-testnet", "tempo-mainnet"]).parse(
@@ -41,6 +42,7 @@ export const agreementSchema = z
             id: z.string().regex(/^[a-z][a-z0-9-]{0,39}$/),
             rubric: z.string().trim().min(1).max(4000),
             awardUnits: units,
+            webDomains: webDomains.optional(),
           })
           .strict(),
       )

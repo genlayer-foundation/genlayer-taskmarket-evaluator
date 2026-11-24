@@ -4,6 +4,14 @@
 
 Internet Court checks public work against agreed milestone rubrics. A requester names its Tempo evaluator wallet when opening a claim task. The worker submits public text artifacts. The evaluator verifies the submission, obtains a finalized GenLayer Bradbury ruling for each agreed milestone, and relays the award to Taskmarket. The ledger records the recipient and amount after verifying a successful settlement receipt and the OUSD transfer.
 
+## What the jury reads
+
+By default the judges read the submitted public UTF-8 files. A link inside a file is just text under these terms. To have the jury check external facts, agree on `webDomains` for the milestone before funding it. See the [web evidence agreement](examples/taskmarket/web-evidence.json).
+
+Cite one to three distinct public HTTPS pages from the agreed hostnames in the milestone rubric or submitted files. Use a stable, public record with the relevant passage near the top. Each judge independently renders the page and reads the first 6,000 characters after whitespace normalization. The judges compare the hashes of the text they used. A passing or failing decision must quote each source. A missing source, too many sources, or an unsupported quote results in further review. If judges cannot agree on the retrieved text, the evaluator needs an accepted, finalized ruling before it can act. The contract’s `get_web_evidence` view exposes the source URLs and SHA-256 hashes. Open-ended searches and authenticated pages are outside this evidence mode.
+
+On 24 November 2026 a standalone Bradbury jury read a public case record, returned the exact transaction ID requested and quoted the source. Its [finalized web-access ruling](https://scan.bradbury.genlayer.com/tx/0x96f548f6cb11d8b702aa5399203d68ea0a40450ccb82d3673506f37b99a85551) records the result. This check used test GEN and involved no Taskmarket funds.
+
 ## Verified testnet pilot · 23 November 2026
 
 The requester escrowed 1 test OUSD and named the evaluator by address. Bradbury finalized an approval with a score of 92/100. After Taskmarket's five-minute window, Tempo block 45,574,489 recorded transfers of **0.95 OUSD to the worker** and **0.05 OUSD to the evaluator**. This first pilot used a 5% evaluator fee. The current testnet service charges a 0% evaluator fee on new jobs and has a 24-hour evaluation window.

@@ -35,7 +35,10 @@ def serve_cases(bucket, network, socket_path):
                         record["network"] != network or record["id"] != self.path[1:]):
                     return self.send_error(400)
                 for item in record["milestones"]:
-                    if (set(item) - {"milestone", "status", "tx", "decision", "deadline", "result"} or
+                    if (set(item) - {"milestone", "status", "tx", "decision", "deadline", "result", "webDomains"} or
+                            ("webDomains" in item and not (isinstance(item["webDomains"], list) and
+                             1 <= len(item["webDomains"]) <= 8 and all(isinstance(d, str) and len(d) <= 253 and
+                             re.fullmatch(r"[a-z0-9.-]+", d) for d in item["webDomains"]))) or
                             ("result" in item and set(item["result"]) != {"verdict", "reasoning"})):
                         return self.send_error(400)
                 subprocess.run(["aws", "s3", "cp", "-", "s3://" + bucket + "/cases/" + network + self.path + ".json",
@@ -127,6 +130,8 @@ def receipt_feed(database, chain=42431):
         for key, terms in milestones.items():
             j = by_milestone.get(key, {})
             ruling = {"milestone": key, "rubric": terms["rubric"], "priceUnits": terms["awardUnits"]}
+            if terms.get("webDomains"):
+                ruling["webDomains"] = terms["webDomains"]
             if j.get("tx"):
                 ruling["tx"] = j["tx"]
                 if j.get("result"):
