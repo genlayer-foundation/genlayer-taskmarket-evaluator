@@ -8,7 +8,7 @@ import { Journal, publicJob } from "./store.js";
 import { agreementSchema, digest, type Job } from "./model.js";
 import { previewLocation } from "./evidence.js";
 import { encodeEventTopics, encodeAbiParameters, parseAbi, zeroHash, type Log } from "viem";
-import { operationId, verifySettlement } from "./tempo.js";
+import { operationId, verifySettlement, verifyRequesterRejection } from "./tempo.js";
 import { diamond } from "./model.js";
 
 let dir: string, db: Journal;
@@ -41,6 +41,7 @@ describe("Taskmarket worker", () => {
   it.each([
     ["approval", "approve", "1000000", "payment"],
     ["rejection", "reject", "0", "refund"],
+    ["uncertain", "reject", "0", "refund"],
     ["partial", "partial", "30000000", "payment"],
     ["recovery", "approve", "1000000", "payment"],
   ] as const)("settles %s with its explicit award", async (s, verdict, award, kind) => {
@@ -50,8 +51,7 @@ describe("Taskmarket worker", () => {
     expect(j.settlement?.kind).toBe(kind);
     expect(j.evaluateTx).toBeTruthy();
   });
-  it("holds uncertain and unsuccessful judgments without relaying", async () => {
-    expect((await runExample(db, "uncertain")).decision).toBeUndefined();
+  it("holds an unsuccessful judgment without relaying", async () => {
     const h = harness();
     await h.tick();
     await h.tick();
@@ -184,6 +184,44 @@ describe("Taskmarket worker", () => {
     expect(() => verifySettlement(j, receipt([paid]))).toThrow();
     expect(() => verifySettlement(j, receipt([paid, { ...transfer, address: worker }]))).toThrow();
     expect(() => verifySettlement({ ...j, id: zeroHash } as Job, receipt([paid, transfer]))).toThrow();
+  });
+  it("records a buyer rejection only when both receipts and both OUSD transfers agree", async () => {
+    const job = await runExample(db, "approval");
+    job.phase = "review";
+    delete job.decision;
+    delete job.settlement;
+    delete job.scenario;
+    job.judgments[0].result!.verdict = "needs_review";
+    const { requester, worker, evaluator } = job.evidence!;
+    const abi = parseAbi([
+      "event EvaluatorTimedOut(bytes32 indexed taskId,address indexed evaluator,uint256 forfeitedStake)",
+      "event DeliveryRejected(bytes32 indexed taskId,address indexed worker,uint256 rejectFee,uint256 stakeForfeited)",
+      "event TaskExpired(bytes32 indexed taskId,address indexed requester,uint256 refundAmount)",
+      "event Transfer(address indexed from,address indexed to,uint256 value)",
+    ]);
+    const amount = (n: bigint) => encodeAbiParameters([{ type:"uint256" }], [n]);
+    const taskId = job.id;
+    const expired = { address: diamond, topics: encodeEventTopics({ abi, eventName:"TaskExpired",
+      args:{ taskId, requester } }), data:amount(800000n) };
+    const rejected = { address: diamond, topics: encodeEventTopics({ abi, eventName:"DeliveryRejected",
+      args:{ taskId, worker } }), data:encodeAbiParameters([{type:"uint256"},{type:"uint256"}],[200000n,0n]) };
+    const timeout = { address: diamond, topics: encodeEventTopics({ abi, eventName:"EvaluatorTimedOut",
+      args:{ taskId, evaluator } }), data:amount(0n) };
+    const unrelatedToken = fixtureAddress("a");
+    const transfer = (to: typeof requester, n: bigint) => ({
+      address:"0x20c0000000000000000000006a37da5c996874be",
+      topics:encodeEventTopics({ abi, eventName:"Transfer", args:{ from:diamond, to } }), data:amount(n) });
+    const receipt = (n: bigint, logs: unknown[]) => ({ status:"success", transactionHash:digest(String(n)),
+      blockNumber:BigInt(job.evidence!.submitBlock)+n, transactionIndex:0, logs } as Parameters<typeof verifyRequesterRejection>[1]);
+    const refund = transfer(requester,800000n), fee = transfer(worker,200000n);
+    const closed = receipt(2n,[expired,rejected,refund,fee]);
+    const timed = receipt(1n,[timeout]);
+    expect(verifyRequesterRejection(job,timed,closed)).toMatchObject({refundUnits:"800000",workerFeeUnits:"200000",tx:closed.transactionHash});
+    expect(() => verifyRequesterRejection(job,receipt(3n,[timeout]),closed)).toThrow();
+    expect(() => verifyRequesterRejection(job,receipt(1n,[]),closed)).toThrow();
+    for (const logs of [[expired,refund,fee],[expired,rejected,refund],[expired,rejected,refund,{...fee,address:unrelatedToken}],
+      [expired,rejected,refund,transfer(worker,1n)]])
+      expect(() => verifyRequesterRejection(job,timed,receipt(2n,logs))).toThrow();
   });
   it("restricts artifact downloads to Taskmarket's public storage", () => {
     expect(() => previewLocation("https://127.0.0.1/test")).toThrow();

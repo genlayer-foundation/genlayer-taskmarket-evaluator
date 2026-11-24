@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { inputs } from "./bradbury.js";
 import { taskDescription, matchesTaskDescription } from "./description.js";
-import { agreementSchema, type Job } from "./model.js";
+import { agreementSchema, newAgreementSchema, type Job } from "./model.js";
 import { describe, expect, it } from "vitest";
 import { webDomains, webSources } from "./webSources.js";
 
@@ -41,4 +41,21 @@ it("keeps historic jury inputs intact and binds new citations to the posted agre
   expect(JSON.parse(inputs(job, judgment)[3]).web).toEqual({
     domains: [host], urls: ["https://docs.genlayer.com/receipt", "https://docs.genlayer.com/file"],
   });
+});
+
+it("pins binary rulings only in new agreements and keeps funded v1 inputs byte-compatible", () => {
+  const job: Job = JSON.parse(readFileSync("examples/taskmarket/settled-pilot.json", "utf8"));
+  expect(JSON.parse(inputs(job, job.judgments[0])[3])).not.toHaveProperty("decision_policy");
+  expect(newAgreementSchema.safeParse(job.agreement).success).toBe(false);
+  expect(agreementSchema.safeParse({ ...job.agreement, version: "genlayer-taskmarket/v2" }).success).toBe(false);
+  job.agreement = newAgreementSchema.parse(JSON.parse(readFileSync("examples/taskmarket/fixed.json", "utf8")));
+  expect(JSON.parse(inputs(job, job.judgments[0])[3]).decision_policy).toBe("pass-fail");
+  expect(taskDescription(job.agreement)).toContain("fails at 0–69");
+});
+
+it("refuses a new rubric whose own citations already exceed the submission limit", () => {
+  const agreement = JSON.parse(readFileSync("examples/taskmarket/web-evidence.json", "utf8"));
+  const milestone = agreement.milestones[0];
+  milestone.rubric = Array.from({ length:4 }, (_, i) => "https://" + milestone.webDomains[0] + "/" + i).join(" ");
+  expect(newAgreementSchema.safeParse(agreement).success).toBe(false);
 });

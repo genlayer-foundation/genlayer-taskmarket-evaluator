@@ -59,6 +59,19 @@ class PublicReceiptsTest(unittest.TestCase):
             self.assertEqual((public["verdict"], public["settlementKind"], public["amountUnits"]),
                              ("reject", "refund", "1000000"))
 
+    def test_requester_settlement_preserves_jury_decision_and_two_amounts(self):
+        self.job["judgments"][0]["result"]["verdict"] = "needs_review"
+        self.job.pop("decision")
+        self.job.pop("settlement")
+        self.job["requesterResolution"] = {"timeoutTx": "0x" + "1" * 64, "tx": "0x" + "2" * 64,
+            "block": "3", "refundUnits": "800000", "workerFeeUnits": "200000"}
+        self.save("closed", self.job)
+        feed = host.receipt_feed(self.db)
+        self.assertFalse(feed["unsettled"])
+        row, = feed["evaluations"]
+        self.assertEqual((row["settledBy"], row["verdict"], row["amountUnits"], row["workerFeeUnits"]),
+                         ("requester", "needs_review", "800000", "200000"))
+
     def test_public_milestone_reports_agreed_web_access(self):
         self.job["agreement"]["milestones"][0]["webDomains"] = ["docs.genlayer.com"]
         self.save("live", self.job)

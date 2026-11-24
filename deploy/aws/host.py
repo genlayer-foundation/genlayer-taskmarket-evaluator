@@ -139,6 +139,12 @@ def receipt_feed(database, chain=42431):
             row["rulings"].append(ruling)
         if not row["rulings"] or not all("result" in ruling for ruling in row["rulings"]):
             in_progress.append(dict(row, phase=job["phase"], updatedAt=job["updated"], rewardUnits=job["agreement"]["rewardUnits"]))
+        elif job["phase"] == "settled" and job.get("requesterResolution"):
+            receipt = job["requesterResolution"]
+            evaluations.append(dict(row, completedAt=job["updated"], verdict="needs_review",
+                                    settledBy="requester", settlementKind="refund", amountUnits=receipt["refundUnits"],
+                                    workerFeeUnits=receipt["workerFeeUnits"], timeoutTx=receipt["timeoutTx"],
+                                    settlementTx=receipt["tx"]))
         elif job["phase"] == "settled":
             receipt = job["settlement"]
             evaluations.append(dict(row, completedAt=job["updated"], verdict=job["decision"]["verdict"],
@@ -146,7 +152,8 @@ def receipt_feed(database, chain=42431):
         else:
             verdict = (job.get("decision") or {}).get("verdict")
             if verdict is None:
-                verdict = "needs_review" if any(j["result"]["verdict"] == "needs_review" for j in judgments) else "finalized"
+                outcomes = {j["result"]["verdict"] for j in judgments}
+                verdict = "error" if "error" in outcomes else "needs_review" if "needs_review" in outcomes else "finalized"
             unsettled.append(dict(row, updatedAt=job["updated"], verdict=verdict, rewardUnits=job["agreement"]["rewardUnits"]))
     return {"version": 1, "evaluations": evaluations, "unsettled": unsettled, "inProgress": in_progress}
 

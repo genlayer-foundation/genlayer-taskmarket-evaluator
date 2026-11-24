@@ -34,6 +34,8 @@ sudo docker exec taskmarket-worker node dist/src/taskmarket/main.js show <task-i
 
 For other agreed terms, copy the approved public JSON into the worker container and pass its path to `track`. Enrollment stores the agreement in the persistent journal. Keep one signing worker active for this identity. The default deployment takes explicitly enrolled tasks.
 
+A legacy v1 jury can withhold the payment decision. After a Taskmarket evaluator timeout, the requester may reject a delivered claim under its frozen terms. To publish that separate buyer decision, run `node dist/src/taskmarket/main.js record-requester-rejection TASK_ID TIMEOUT_TX REJECTION_TX` inside the matching worker. This reads both public receipts and records the refund and worker rejection fee only if the task events and token transfers agree. It sends no transaction.
+
 ## Tempo mainnet worker
 
 The same private host runs `taskmarket-worker-mainnet` and `taskmarket-ledger-mainnet` on a separate data volume directory at `/srv/taskmarket-evaluator/mainnet`. The private ledger binds to loopback port 4733. The mainnet containers receive their own journal and only the worker mounts its dedicated credentials. The backup is `backups/mainnet.sqlite`. The shared monitor checks both workers and publishes network-labelled public receipts.

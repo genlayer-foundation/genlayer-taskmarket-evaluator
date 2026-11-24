@@ -29,6 +29,7 @@ import {
   type Job,
   type Decision,
   type Settlement,
+  type RequesterResolution,
 } from "./model.js";
 
 const client = createPublicClient({ transport: http(rpc) });
@@ -48,6 +49,9 @@ const events = parseAbi([
   "event TaskCompleted(bytes32 indexed taskId,address indexed requester,address indexed worker,uint256 workerPayment,uint256 platformFee)",
   "event TaskCancelled(bytes32 indexed taskId,address indexed requester,uint256 refundAmount)",
   "event Transfer(address indexed from,address indexed to,uint256 value)",
+  "event EvaluatorTimedOut(bytes32 indexed taskId,address indexed evaluator,uint256 forfeitedStake)",
+  "event DeliveryRejected(bytes32 indexed taskId,address indexed worker,uint256 rejectFee,uint256 stakeForfeited)",
+  "event TaskExpired(bytes32 indexed taskId,address indexed requester,uint256 refundAmount)",
 ]);
 const at = { abi, address: diamond } as const;
 export async function preflight() {
@@ -217,6 +221,46 @@ export function verifySettlement(job: Job, r: Awaited<ReturnType<typeof receipt>
     kind: reject ? "refund" : "payment",
   };
 }
+// A buyer can reject directly after an evaluator timeout. Keep that decision separate from the jury.
+export function verifyRequesterRejection(job: Job, timeout: Awaited<ReturnType<typeof receipt>>,
+  rejection: Awaited<ReturnType<typeof receipt>>): RequesterResolution {
+  const e = job.evidence;
+  if (!e || e.chainId !== chainId || e.diamond.toLowerCase() !== diamond.toLowerCase() ||
+      job.decision || job.scenario || job.phase !== "review" || job.judgments.length !== job.agreement.milestones.length ||
+      !job.judgments.every(j => j.tx && j.contract && j.result?.success) ||
+      !job.judgments.some(j => j.result?.verdict === "needs_review"))
+    throw new Review("Expected a held job with finalized jury evidence and no payment decision");
+  if (timeout.status !== "success" || rejection.status !== "success" ||
+      timeout.blockNumber < BigInt(e.submitBlock) || timeout.blockNumber > rejection.blockNumber ||
+      (timeout.blockNumber === rejection.blockNumber && timeout.transactionIndex >= rejection.transactionIndex))
+    throw new Review("Expected a successful evaluator timeout followed by a requester rejection");
+  const fromDiamond = (r: typeof timeout) => r.logs.filter(l => l.address.toLowerCase() === diamond.toLowerCase());
+  const timedOut = parseEventLogs({ abi: events, eventName: "EvaluatorTimedOut", logs: fromDiamond(timeout) })
+    .find(l => l.args.taskId === job.id && l.args.evaluator.toLowerCase() === e.evaluator && l.args.forfeitedStake === 0n);
+  const logs = fromDiamond(rejection);
+  const rejected = parseEventLogs({ abi: events, eventName: "DeliveryRejected", logs })
+    .find(l => l.args.taskId === job.id && l.args.worker.toLowerCase() === e.worker && l.args.stakeForfeited === 0n);
+  const refunded = parseEventLogs({ abi: events, eventName: "TaskExpired", logs })
+    .find(l => l.args.taskId === job.id && l.args.requester.toLowerCase() === e.requester);
+  if (!timedOut || !rejected || !refunded || rejected.args.rejectFee + refunded.args.refundAmount !== BigInt(job.agreement.rewardUnits))
+    throw new Review("Tempo receipts do not identify this task, both parties and the full escrow");
+  const transfers = parseEventLogs({ abi: events, eventName: "Transfer",
+    logs: rejection.logs.filter(l => l.address.toLowerCase() === token) });
+  const paid = (to: Address) => transfers.filter(l => l.args.from.toLowerCase() === diamond.toLowerCase() &&
+    l.args.to.toLowerCase() === to).reduce((n, l) => n + l.args.value, 0n);
+  if (paid(e.requester) !== refunded.args.refundAmount || paid(e.worker) !== rejected.args.rejectFee)
+    throw new Review("OUSD transfers differ from the recorded requester refund and worker rejection fee");
+  return { timeoutTx: timeout.transactionHash, tx: rejection.transactionHash, block: String(rejection.blockNumber),
+    refundUnits: String(refunded.args.refundAmount), workerFeeUnits: String(rejected.args.rejectFee) };
+}
+
+export async function requesterRejection(job: Job, timeoutTx: Hash, rejectionTx: Hash) {
+  const [timeout, rejection, s] = await Promise.all([receipt(timeoutTx), receipt(rejectionTx), state(job.id)]);
+  if (s.task.id !== job.id || s.task.status !== 5 || s.task.reward !== 0n || s.verdict.issued || s.config.evaluator !== zeroAddress)
+    throw new Review("Taskmarket has not closed the task after removing its evaluator");
+  return verifyRequesterRejection(job, timeout, rejection);
+}
+
 export async function recoverVerdict(job: Job) {
   const fromBlock = BigInt(job.verdictCursor ?? job.evidence!.submitBlock);
   const tip = await client.getBlockNumber();

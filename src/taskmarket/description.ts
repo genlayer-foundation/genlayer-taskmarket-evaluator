@@ -3,6 +3,7 @@ import { agreementSchema, commitment, mainnet, type Agreement } from "./model.js
 
 // Taskmarket displays the first line as the task title. All visible text comes from pinned terms.
 export function taskDescription(agreement: Agreement): string {
+  const binary = agreement.version === "genlayer-taskmarket/v2";
   const firstLine = agreement.brief.split(/[\r\n]/, 1)[0];
   const opening = firstLine.length <= 100
     ? firstLine
@@ -16,12 +17,14 @@ export function taskDescription(agreement: Agreement): string {
     body,
     ...agreement.milestones.map((m) => [
       `Milestone · ${m.id} · ${amount(m.awardUnits)}\n${m.rubric}`,
-      ...(m.webDomains ? [`Web evidence: cite 1–3 public HTTPS pages from ${m.webDomains.join(", ")} in this rubric or your submission. Each judge reads up to 6,000 characters per page. Missing or unreadable sources require review.`] : []),
+      ...(m.webDomains ? [`Web evidence: cite 1–3 public HTTPS pages from ${m.webDomains.join(", ")} in this rubric or your submission. Each judge reads up to 6,000 characters per page. ${binary ? "Missing required citations fail the milestone. A retrieval failure pauses settlement." : "Missing or unreadable sources require review."}`] : []),
     ].join("\n")),
     [
       `Escrow: ${amount(agreement.rewardUnits)} on Tempo ${mainnet ? "mainnet" : "testnet"}`,
       `Evaluator fee: ${formatUnits(BigInt(agreement.evaluatorFeeBps), 2)}%`,
-      "Rulings: GenLayer Bradbury testnet. A ruling requiring review withholds the verdict.",
+      binary
+        ? "Rulings: GenLayer Bradbury testnet. Each milestone passes at 70–100 and fails at 0–69. Missing required proof fails. An evaluator or network failure pauses settlement."
+        : "Rulings: GenLayer Bradbury testnet. A ruling requiring review withholds the verdict.",
       "Rubric: " + agreement.rubricVersion,
       "Agreement reference: " + commitment(agreement),
     ].join("\n"),

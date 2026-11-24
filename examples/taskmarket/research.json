@@ -1,10 +1,9 @@
 {
-  "version": "genlayer-taskmarket/v1",
+  "version": "genlayer-taskmarket/v2",
   "brief": "Compare three agent marketplaces and supply independently reproducible public instructions for each. Submit the comparison, citations, relevant source excerpts and a reproduction transcript as public text artifacts. The gross escrow is 50 OUSD. The evaluator fee is zero for this demonstration.",
-  "rubricVersion": "research-v1",
+  "rubricVersion": "research-v2",
   "rewardUnits": "50000000",
   "evaluatorFeeBps": 0,
-  "needsReview": "withhold-verdict",
   "milestones": [
     {
       "id": "comparison",

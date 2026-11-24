@@ -26,19 +26,20 @@ export async function preparePilot(db: Journal, bradburyWallet: Address) {
   db.db.exec(
     "CREATE TABLE IF NOT EXISTS pilot (slot INTEGER PRIMARY KEY CHECK(slot=1), intent TEXT NOT NULL, task TEXT, claimed INTEGER DEFAULT 0, submitted INTEGER DEFAULT 0)",
   );
-  const readableIntent = commitment({ original: intentFor(agreement), description: taskDescription(agreement) });
-  db.db.prepare("INSERT OR IGNORE INTO pilot(slot,intent) VALUES (1,?)").run(readableIntent);
+  const readableIntent = (terms: Agreement) => commitment({ original: intentFor(terms), description: taskDescription(terms) });
+  db.db.prepare("INSERT OR IGNORE INTO pilot(slot,intent) VALUES (1,?)").run(readableIntent(agreement));
   const record = db.db.prepare("SELECT * FROM pilot WHERE slot=1").get()!;
-  if (record.intent !== readableIntent && record.intent !== intentFor(agreement)) {
-    // A run that started before the fee waiver must retain its original terms and request key.
-    const original = JSON.parse(readFileSync(resolve("examples/taskmarket/settled-pilot.json"), "utf8"));
-    agreement = agreementSchema.parse(original.agreement);
-    if (record.intent !== intentFor(agreement))
-      throw new Error("Pilot wallets or agreement differ from the saved run");
-  }
-  // Replay an outstanding creation with exactly the original description and idempotency key.
   const intent = String(record.intent);
-  const description = intent === readableIntent ? taskDescription(agreement) : JSON.stringify(agreement);
+  if (intent !== readableIntent(agreement) && intent !== intentFor(agreement)) {
+    // Recover exactly the original funded or pending v1 payload and idempotency key.
+    const archived = agreementSchema.parse(JSON.parse(readFileSync(resolve("examples/taskmarket/settled-pilot.json"), "utf8")).agreement);
+    const waived = { ...archived, evaluatorFeeBps: 0,
+      milestones: archived.milestones.map(m => ({ ...m, awardUnits: archived.rewardUnits })) };
+    const matched = [waived, archived].find(terms => intent === intentFor(terms) || intent === readableIntent(terms));
+    if (!matched) throw new Error("Pilot wallets or agreement differ from the saved run");
+    agreement = matched;
+  }
+  const description = intent === readableIntent(agreement) ? taskDescription(agreement) : JSON.stringify(agreement);
   let id: Hash;
   if (record.task) id = hash.parse(record.task);
   else {

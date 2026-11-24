@@ -1,14 +1,13 @@
 {
-  "version": "genlayer-taskmarket/v1",
+  "version": "genlayer-taskmarket/v2",
   "brief": "Explain how a requester selects an evaluator at task creation. Deliver a public Markdown file with the Taskmarket command and an explanation of the appeal window.",
-  "rubricVersion": "fixed-v1",
+  "rubricVersion": "fixed-v2",
   "rewardUnits": "1000000",
   "evaluatorFeeBps": 0,
-  "needsReview": "withhold-verdict",
   "milestones": [
     {
       "id": "guide",
-      "rubric": "Approve a correct task create command naming the evaluator and a correct explanation of when the worker can appeal. Reject missing or incorrect work. Score 70–100 for a pass, 40–69 for uncertainty, 0–39 for a fail.",
+      "rubric": "Approve a correct task create command naming the evaluator and a correct explanation of when the worker can appeal. Reject missing or incorrect work. Score 70–100 when the requirements are met and 0–69 otherwise.",
       "awardUnits": "1000000"
     }
   ]

@@ -44,6 +44,7 @@ export function inputs(job: Job, j: Judgment) {
     submissionId: e.submissionId,
     submitTx: e.submitTx,
     evidenceHash: commitment(e),
+    ...(job.agreement.version === "genlayer-taskmarket/v2" && { decision_policy: "pass-fail" }),
     ...(milestone.webDomains && {
       web: webSources(milestone.webDomains, [milestone.rubric, ...e.files.map(f => f.text)]),
     }),

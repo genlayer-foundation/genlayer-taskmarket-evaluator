@@ -1,6 +1,6 @@
 import { keccak256, stringToHex, type Address, type Hash, zeroAddress } from "viem";
 import { z } from "zod";
-import { webDomains } from "./webSources.js";
+import { webDomains, webSources } from "./webSources.js";
 
 export const claimMode = keccak256(stringToHex("TMP.mode.claim")).slice(0, 10) as Hash;
 export const settlementNetwork = z.enum(["tempo-testnet", "tempo-mainnet"]).parse(
@@ -27,14 +27,14 @@ const units = z.string().regex(/^[1-9]\d{0,30}$/);
 const rate = z.number().int().min(0).max(10000);
 export const agreementSchema = z
   .object({
-    version: z.literal("genlayer-taskmarket/v1"),
+    version: z.enum(["genlayer-taskmarket/v1", "genlayer-taskmarket/v2"]),
     settlementNetwork: z.enum(["tempo-mainnet", "tempo-testnet"]).optional(),
     rulingNetwork: z.literal("bradbury-testnet").optional(),
     brief: z.string().trim().min(1).max(12000),
     rubricVersion: z.string().min(1).max(80),
     rewardUnits: units,
     evaluatorFeeBps: rate,
-    needsReview: z.literal("withhold-verdict"),
+    needsReview: z.literal("withhold-verdict").optional(),
     milestones: z
       .array(
         z
@@ -51,6 +51,11 @@ export const agreementSchema = z
   })
   .strict()
   .superRefine((a, ctx) => {
+    if ((a.version === "genlayer-taskmarket/v1") !== (a.needsReview === "withhold-verdict"))
+      ctx.addIssue({ code: "custom", message: "Only legacy v1 terms include the withhold-verdict policy" });
+    if (a.version === "genlayer-taskmarket/v2" && a.milestones.some(m =>
+      m.webDomains && webSources(m.webDomains, [m.rubric]).urls.length > 3))
+      ctx.addIssue({ code: "custom", message: "A web rubric cannot require more than three distinct pages" });
     if (a.settlementNetwork && a.settlementNetwork !== settlementNetwork)
       ctx.addIssue({ code: "custom", message: "Agreement belongs to another settlement network" });
     if (mainnet && (!a.settlementNetwork || !a.rulingNetwork || a.evaluatorFeeBps !== 0))
@@ -68,6 +73,8 @@ export const agreementSchema = z
     if (new Set(a.milestones.map((m) => m.id)).size !== a.milestones.length)
       ctx.addIssue({ code: "custom", message: "Milestone IDs must be unique" });
   });
+export const newAgreementSchema = agreementSchema.refine(a => a.version === "genlayer-taskmarket/v2",
+  "Use v2 pass/fail terms for a new job");
 export type Agreement = z.infer<typeof agreementSchema>;
 export const digest = (text: string) => keccak256(stringToHex(text));
 export const commitment = (value: unknown) => digest(JSON.stringify(value));
@@ -122,6 +129,13 @@ export type Settlement = {
   units: string;
   kind: "payment" | "refund";
 };
+export type RequesterResolution = {
+  timeoutTx: Hash;
+  tx: Hash;
+  block: string;
+  refundUnits: string;
+  workerFeeUnits: string;
+};
 export type Job = {
   id: Hash;
   scenario?: string;
@@ -133,6 +147,7 @@ export type Job = {
   evaluateTx?: Hash;
   finalizeTx?: Hash;
   settlement?: Settlement;
+  requesterResolution?: RequesterResolution;
   message?: string;
   updated: string;
   cursor?: string;
@@ -153,14 +168,17 @@ export function decide(job: Job): Decision {
     if (j.milestone !== m.id || !j.tx || !j.contract || !parsed.success)
       throw new Review("Incomplete finalized ruling");
     const r = parsed.data;
-    const band = r.score >= 70 ? "approve" : r.score < 40 ? "reject" : "needs_review";
+    const band = r.score >= 70 ? "approve" :
+      agreement.version === "genlayer-taskmarket/v1" && r.score >= 40 ? "needs_review" : "reject";
     if (
       !r.success ||
       r.verdict !== band ||
       r.verdict === "needs_review" ||
       r.rubric_version !== agreement.rubricVersion
     )
-      throw new Review("Ruling requires review. The agreement withholds the Taskmarket verdict.");
+      throw new Review(r.verdict === "needs_review" && agreement.version === "genlayer-taskmarket/v1"
+        ? "Legacy jury withheld the payment decision."
+        : "No valid finalized pass/fail decision. The evaluator cannot submit a payment verdict.");
     if (r.verdict === "approve") {
       amount += BigInt(m.awardUnits);
       approved++;

@@ -6,7 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 import { Journal, publicJob } from "./store.js";
-import { address, agreementSchema, hash, mainnet, operatorHome, settlementNetwork } from "./model.js";
+import { address, agreementSchema, newAgreementSchema, hash, mainnet, operatorHome, settlementNetwork } from "./model.js";
 import { discover } from "./inbox.js";
 import { preparePilot } from "./pilot.js";
 import { advance } from "./engine.js";
@@ -60,7 +60,7 @@ async function serve(db: Journal) {
 }
 async function main() {
   if (command === "describe" && args.length === 1) {
-    const terms = agreementSchema.parse(JSON.parse(readFileSync(args[0], "utf8")));
+    const terms = newAgreementSchema.parse(JSON.parse(readFileSync(args[0], "utf8")));
     process.stdout.write(taskDescription(terms));
     return;
   }
@@ -94,8 +94,28 @@ async function main() {
   try {
     if (command === "track" && args.length === 2) {
       const id = hash.parse(args[0]);
-      db.track(id, agreementSchema.parse(JSON.parse(readFileSync(args[1], "utf8"))));
+      const schema = db.get(id) ? agreementSchema : newAgreementSchema;
+      db.track(id, schema.parse(JSON.parse(readFileSync(args[1], "utf8"))));
       console.log("Tracking", id);
+      return;
+    }
+    if (command === "record-requester-rejection" && args.length === 3) {
+      const [id, timeoutTx, rejectionTx] = args.map(v => hash.parse(v));
+      const job = db.get(id);
+      if (!job) throw new Error("Unknown task");
+      if (job.requesterResolution) {
+        if (job.requesterResolution.tx !== rejectionTx || job.requesterResolution.timeoutTx !== timeoutTx)
+          throw new Error("Different requester settlement already recorded");
+      } else {
+        const outcome = await tempo.requesterRejection(job, timeoutTx, rejectionTx);
+        const changed = db.db.prepare(
+          "UPDATE jobs SET record=json_set(json_remove(record, '$.message'), '$.requesterResolution', json(?), '$.phase', 'settled', '$.updated', ?) " +
+          "WHERE id=? AND json_extract(record, '$.phase')='review' AND json_extract(record, '$.requesterResolution') IS NULL"
+        ).run(JSON.stringify(outcome), new Date().toISOString(), id);
+        if (!changed.changes && db.get(id)?.requesterResolution?.tx !== rejectionTx)
+          throw new Error("Job changed while verifying the requester settlement");
+      }
+      console.log(JSON.stringify(db.get(id)?.requesterResolution));
       return;
     }
     if (command === "show" && args.length === 1) {
@@ -106,7 +126,7 @@ async function main() {
     }
     if (!["work", "once", "pilot"].includes(command))
       throw new Error(
-        "Usage: serve | demo | preflight | prepare-signer | describe BRIEF.json | track TASK_ID BRIEF.json | show TASK_ID | pilot | work | once",
+        "Usage: serve | demo | preflight | prepare-signer | describe BRIEF.json | track TASK_ID BRIEF.json | show TASK_ID | record-requester-rejection TASK_ID TIMEOUT_TX REJECTION_TX | pilot | work | once",
       );
     db.takeWorkerLock();
     await tempo.preflight();
@@ -128,7 +148,7 @@ async function main() {
     }
     const offerPath = command === "work" ? process.env.TASKMARKET_ACCEPT_BRIEF : undefined;
     const offer = offerPath
-      ? agreementSchema.parse(JSON.parse(readFileSync(offerPath, "utf8")))
+      ? newAgreementSchema.parse(JSON.parse(readFileSync(offerPath, "utf8")))
       : undefined;
     const buyers = new Set(
       (process.env.TASKMARKET_ACCEPT_REQUESTERS ?? "")

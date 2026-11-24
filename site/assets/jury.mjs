@@ -1,8 +1,8 @@
 "use strict";
 
 export const juryLabels = {
-  approve: "Approved", reject: "Rejected", partial: "Partial award", needs_review: "Sent for review",
-  error: "Ruling error", finalized: "Jury rulings finalized", enrolled: "Awaiting submission",
+  approve: "Approved", reject: "Rejected", partial: "Partial award", needs_review: "Payment decision withheld",
+  error: "Evaluation failed", finalized: "Jury rulings finalized", enrolled: "Awaiting submission",
   submitted: "Awaiting jury", judging: "Jury deliberating", provisional: "Provisional decision", appeal: "Appeal in progress",
   paused: "Evaluation paused", finalizing: "Finalizing evaluation",
 };
@@ -16,7 +16,7 @@ export function evidenceLabel(domains) {
 export function milestoneLabel(m) {
   if (m.status === "Finalized") return juryLabels[m.result?.verdict] || "Ruling finalized";
   if (m.status === "Accepted" && m.decision) {
-    const outcome = {approve: "approve", reject: "reject", needs_review: "send for review", error: "ruling error"};
+    const outcome = {approve: "approve", reject: "reject", needs_review: "withhold payment decision", error: "ruling error"};
     return outcome[m.result?.verdict] ? "Provisional decision · " + outcome[m.result.verdict] : juryLabels.provisional;
   }
   if (m.status?.startsWith("Appeal ")) return juryLabels.appeal;
@@ -36,6 +36,7 @@ export function juryStage(phase, milestones) {
 export function finalOutcome(milestones) {
   if (!milestones.length || !milestones.every(m => m.status === "Finalized" && m.result?.verdict)) return null;
   const verdicts = new Set(milestones.map(m => m.result.verdict));
+  if (verdicts.has("error")) return "error";
   if (verdicts.has("needs_review")) return "needs_review";
   return verdicts.size === 1 ? milestones[0].result.verdict : "finalized";
 }

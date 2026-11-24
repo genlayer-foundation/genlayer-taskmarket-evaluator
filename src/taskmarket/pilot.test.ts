@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { preparePilot } from "./pilot.js";
@@ -8,7 +8,7 @@ import { cli, state, wallet } from "./tempo.js";
 import { taskDetail } from "./evidence.js";
 import { Journal } from "./store.js";
 import { example, fixtureAddress, simulation } from "./demo.js";
-import { commitment, digest } from "./model.js";
+import { agreementSchema, commitment, digest } from "./model.js";
 import { taskDescription } from "./description.js";
 vi.mock("./tempo.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./tempo.js")>()),
@@ -98,9 +98,7 @@ describe("by-address pilot", () => {
     expect(db.get(id)?.agreement).toEqual(agreement);
   });
   it("resumes pre-waiver pilots using their original onchain agreement", async () => {
-    const agreement = example(false);
-    agreement.evaluatorFeeBps = 500;
-    agreement.milestones[0].awardUnits = "950000";
+    const agreement = agreementSchema.parse(JSON.parse(readFileSync("examples/taskmarket/settled-pilot.json","utf8")).agreement);
     const intent = commitment({ network: 42431, ...roles, bradburyWallet: judge, agreement });
     db.db.exec("CREATE TABLE pilot (slot INTEGER PRIMARY KEY, intent TEXT, task TEXT, claimed INTEGER, submitted INTEGER)");
     db.db.prepare("INSERT INTO pilot VALUES (1, ?, ?, 1, 1)").run(intent, id);
@@ -110,6 +108,22 @@ describe("by-address pilot", () => {
     expect(await preparePilot(db, judge)).toBe(id);
     expect(db.get(id)?.agreement.evaluatorFeeBps).toBe(500);
     expect(cli).not.toHaveBeenCalled();
+  });
+  it("replays the pre-v2 readable listing after a lost create response", async () => {
+    const old = agreementSchema.parse(JSON.parse(readFileSync("examples/taskmarket/settled-pilot.json","utf8")).agreement);
+    old.evaluatorFeeBps = 0;
+    old.milestones[0].awardUnits = old.rewardUnits;
+    const original = commitment({ network: 42431, ...roles, bradburyWallet: judge, agreement: old });
+    const description = taskDescription(old);
+    const intent = commitment({ original, description });
+    db.db.exec("CREATE TABLE pilot (slot INTEGER PRIMARY KEY, intent TEXT, task TEXT, claimed INTEGER, submitted INTEGER)");
+    db.db.prepare("INSERT INTO pilot VALUES (1, ?, NULL, 0, 0)").run(intent);
+    vi.mocked(bradburyPreflight).mockResolvedValue({ depositCovered: true } as Awaited<ReturnType<typeof bradburyPreflight>>);
+    vi.mocked(cli).mockRejectedValue(new Error("response lost"));
+    await expect(preparePilot(db, judge)).rejects.toThrow("response lost");
+    const [args, key] = vi.mocked(cli).mock.calls[0];
+    expect(args[args.indexOf("--description") + 1]).toBe(description);
+    expect(key).toBe("pilot-create-" + intent.slice(2));
   });
   it("replays an unresolved JSON listing with its original request key and payload", async () => {
     const agreement = example(false);

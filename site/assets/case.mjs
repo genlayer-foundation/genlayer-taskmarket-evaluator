@@ -37,6 +37,8 @@ function render(data) {
     }
     list.append(card);
   }
+  if (data.phase === "settled" && outcome === "needs_review")
+    list.append(el("p", "The buyer rejected the delivery after the evaluator timeout. The settlement receipt shows the buyer’s refund and the worker’s rejection fee."));
   if (data.phase === "settled") list.append(link("View settlement receipt","/explorer?network=" + network + "&case=" + task));
   countdown();
 }

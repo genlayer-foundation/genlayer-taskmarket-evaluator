@@ -8,7 +8,7 @@ import sys
 def render_explorers(template, output):
     output.mkdir(parents=True, exist_ok=True)
     for network, name, description in (
-        ("tempo-mainnet", "Tempo mainnet", "Read Internet Court’s rulings on jobs funded with real OUSD, including the MC-Cash50 research brief the jury sent for review."),
+        ("tempo-mainnet", "Tempo mainnet", "Read Internet Court’s rulings on jobs funded with real OUSD, including the MC-Cash50 research brief and the jury’s reasons for withholding a payment decision."),
         ("tempo-testnet", "Tempo testnet", "Follow testnet jobs from enrollment to a final ruling. Read what Internet Court’s AI jury decided and why."),
     ):
         title = name + " decisions | Internet Court × Taskmarket"

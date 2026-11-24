@@ -12,7 +12,7 @@ const scenarios = {
   approval: "Full approval",
   rejection: "Rejection",
   partial: "Partial award",
-  uncertain: "Needs review",
+  uncertain: "Insufficient evidence",
   recovery: "Lost response",
 };
 const labels: Record<string, string> = {
@@ -22,7 +22,7 @@ const labels: Record<string, string> = {
   disputed: "With resolver",
   ready: "Ready to relay",
   tracked: "Awaiting work",
-  review: "Needs review",
+  review: "Settlement paused",
 };
 function ousd(raw: string, mode: Mode) {
   const value = BigInt(raw);
@@ -73,8 +73,8 @@ function Detail({ j, mode }: { j: Entry; mode: Mode }) {
           </b>
         </div>
         <div>
-          <small>Worker award</small>
-          <b>{j.decision ? ousd(j.decision.awardUnits, mode) : "Pending"}</b>
+          <small>{j.requesterResolution ? "Worker rejection fee" : "Worker award"}</small>
+          <b>{j.requesterResolution ? ousd(j.requesterResolution.workerFeeUnits, mode) : j.decision ? ousd(j.decision.awardUnits, mode) : "Pending"}</b>
         </div>
       </div>
       <h3>Milestone rulings</h3>
@@ -141,8 +141,12 @@ function Detail({ j, mode }: { j: Entry; mode: Mode }) {
         </dd>
         <dt>Settlement receipt</dt>
         <dd>
-          <LinkHash value={j.settlement?.tx} base={tempo} />
+          <LinkHash value={j.settlement?.tx ?? j.requesterResolution?.tx} base={tempo} />
         </dd>
+        {j.requesterResolution && <>
+          <dt>Requester refund after rejection</dt><dd>{ousd(j.requesterResolution.refundUnits, mode)}</dd>
+          <dt>Evaluator timeout</dt><dd><LinkHash value={j.requesterResolution.timeoutTx} base={tempo} /></dd>
+        </>}
         {j.settlement && (
           <>
             <dt>{j.settlement.kind === "refund" ? "Requester refund" : "Worker payment"}</dt>

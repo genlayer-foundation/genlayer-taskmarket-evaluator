@@ -108,13 +108,15 @@ export function simulation(job: Job, scenario: Scenario) {
       r.contract = fixtureAddress("4");
       r.result = {
         success: true,
-        verdict: scenario === "uncertain" ? "needs_review" : fail ? "reject" : "approve",
+        verdict: scenario === "uncertain"
+          ? (j.agreement.version === "genlayer-taskmarket/v1" ? "needs_review" : "reject")
+          : fail ? "reject" : "approve",
         score: scenario === "uncertain" ? 50 : fail ? 18 : 92,
         confidence: 90,
         rubric_version: j.agreement.rubricVersion,
         reasoning:
           scenario === "uncertain"
-            ? "The submitted evidence is inconclusive."
+            ? "The submission did not establish a required claim."
             : fail
               ? "The submission does not meet the stated criterion."
               : "The submission meets the stated criterion.",

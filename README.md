@@ -8,7 +8,7 @@ Internet Court checks public work against agreed milestone rubrics. A requester 
 
 By default the judges read the submitted public UTF-8 files. A link inside a file is just text under these terms. To have the jury check external facts, agree on `webDomains` for the milestone before funding it. See the [web evidence agreement](examples/taskmarket/web-evidence.json).
 
-Cite one to three distinct public HTTPS pages from the agreed hostnames in the milestone rubric or submitted files. Use a stable, public record with the relevant passage near the top. Each judge independently renders the page and reads the first 6,000 characters after whitespace normalization. The judges compare the hashes of the text they used. A passing or failing decision must quote each source. A missing source, too many sources, or an unsupported quote results in further review. If judges cannot agree on the retrieved text, the evaluator needs an accepted, finalized ruling before it can act. The contract’s `get_web_evidence` view exposes the source URLs and SHA-256 hashes. Open-ended searches and authenticated pages are outside this evidence mode.
+Cite one to three distinct public HTTPS pages from the agreed hostnames in the milestone rubric or submitted files. Use a stable, public record with the relevant passage near the top. Each judge independently renders the page and reads the first 6,000 characters after whitespace normalization. The judges compare the hashes of the text they used. A passing or failing decision must quote each source. New v2 agreements require one to three eligible citations on a web milestone. Missing citations or too many eligible pages fail the milestone. A retrieval failure or a jury response without verifiable quotes pauses settlement as a technical error. If judges cannot agree on the retrieved text, the evaluator needs an accepted, finalized ruling before it can act. The contract’s `get_web_evidence` view exposes the source URLs and SHA-256 hashes. Open-ended searches and authenticated pages are outside this evidence mode.
 
 On 24 November 2026 a standalone Bradbury jury read a public case record, returned the exact transaction ID requested and quoted the source. Its [finalized web-access ruling](https://scan.bradbury.genlayer.com/tx/0x96f548f6cb11d8b702aa5399203d68ea0a40450ccb82d3673506f37b99a85551) records the result. This check used test GEN and involved no Taskmarket funds.
 
@@ -34,7 +34,7 @@ npm --prefix dashboard ci
 npm run demo
 ```
 
-Open [the local ledger](http://127.0.0.1:4731). The demo seeds approval, rejection, a 30-of-50 OUSD award, and recovery after a lost verdict response. Choose **Needs review** to see the evaluator withhold a verdict. Example judgments and receipts are simulated. The demo uses the same award calculation, journal and settlement state machine as the live worker.
+Open [the local ledger](http://127.0.0.1:4731). The demo seeds approval, rejection, a 30-of-50 OUSD award, and recovery after a lost verdict response. Choose **Insufficient evidence** to see a submission fail despite partial credit. Example judgments and receipts are simulated. The demo uses the same award calculation, journal and settlement state machine as the live worker.
 
 ## Run a job by address on the test networks
 
@@ -101,7 +101,7 @@ For recurring buyers, set `TASKMARKET_ACCEPT_BRIEF` to the agreed JSON path and 
 ### What the receipt proves
 
 - The evidence record binds the Tempo chain, marketplace contract, task, requester, worker, submission event, exact manifest bytes, and hashes of the public artifacts. Each Bradbury contract records its inputs and ruling. Only a successful finalized deployment whose stored inputs match can contribute to an award.
-- A milestone receives its full agreed amount on approval and zero on rejection. A score of 40–69 or an unsuccessful judgment withholds the verdict for operator review. A temporary outage leaves the work eligible for retry. An expired evaluation returns to Taskmarket's timeout process.
+- A milestone receives its full agreed amount on approval and zero on rejection. New v2 agreements approve scores of 70–100 and reject scores of 0–69. Missing proof fails the milestone. An unsuccessful evaluation cannot move funds. Already enrolled v1 agreements keep their original 40–69 band and payment policy. A temporary outage leaves the work eligible for retry. An expired evaluation returns to Taskmarket's timeout process.
 - The operator-controlled evaluator wallet relays the verdict. The evidence hash commits to the inputs, rulings and award. Today buyers trust that operator to relay faithfully. A pending Taskmarket appeal passes to the assigned resolver. Only an eligible worker can appeal, and only when the requester named a resolver. The fixed pilot leaves the resolver unset.
 - The ledger marks a job settled after finding both its marketplace completion or cancellation event and the matching OUSD transfer from escrow. A finalized GenLayer ruling or an issued verdict alone leaves the payment pending.
 - The SQLite journal saves signed Bradbury transactions before broadcast and uses stable Taskmarket write keys. Keep `data/` private and on persistent storage. Stop the worker and ledger before copying the directory as a backup. It contains wallet credentials, recoverable signed transactions and the journal.

@@ -51,10 +51,18 @@ function validRecord(row, group) {
   const settled = group === "evaluations", active = group === "inProgress";
   if (!Number.isFinite(Date.parse(settled ? row.completedAt : row.updatedAt))) return false;
   if (settled) {
+    if (row.settledBy !== undefined && (row.settledBy !== "requester" || row.verdict !== "needs_review" ||
+        row.settlementKind !== "refund" || !units.test(row.workerFeeUnits) || !transaction.test(row.timeoutTx))) return false;
     if (!transaction.test(row.settlementTx) || !["payment","refund"].includes(row.settlementKind) || !units.test(row.amountUnits)) return false;
   } else if (row.settlementTx || !units.test(row.rewardUnits)) return false;
-  if (active ? !["tracked","evaluating","review","disputed","appealing","ready"].includes(row.phase) :
-      !(settled ? ["approve","partial","reject"] : ["approve","partial","reject","needs_review","finalized"]).includes(row.verdict)) return false;
+  if (active) {
+    if (!["tracked","evaluating","review","disputed","appealing","ready"].includes(row.phase)) return false;
+  } else {
+    const outcomes = ["approve","partial","reject"];
+    if (!settled || row.settledBy === "requester") outcomes.push("needs_review");
+    if (!settled) outcomes.push("finalized","error");
+    if (!outcomes.includes(row.verdict)) return false;
+  }
   return Array.isArray(row.rulings) && row.rulings.length > 0 && row.rulings.every(m => {
     if (!m || typeof m.milestone !== "string" || typeof m.rubric !== "string" || !units.test(m.priceUnits)) return false;
     if (m.webDomains !== undefined && !(Array.isArray(m.webDomains) && m.webDomains.every(h => typeof h === "string"))) return false;
@@ -113,6 +121,13 @@ function caseCard(row, stage, ms, inProgress, stale, expanded) {
     items.append(item);
   });
   detail.append(items, link("Task on Taskmarket", network.task + row.id));
+  if (row.settledBy === "requester") {
+    card.append(element("p", "The buyer rejected the delivery after the evaluator timeout. " +
+      money(row.workerFeeUnits, network.token) + " went to the worker as the agreed rejection fee and " +
+      money(row.amountUnits, network.token) + " returned to the buyer."),
+      link("Verify requester settlement", network.tx + row.settlementTx));
+    detail.append(link("View evaluator timeout", network.tx + row.timeoutTx));
+  }
   if (row.settlementTx) {
     detail.append(element("p", money(row.amountUnits, network.token) +
       (row.settlementKind === "refund" ? " refunded to the requester" : " paid to the worker")),
