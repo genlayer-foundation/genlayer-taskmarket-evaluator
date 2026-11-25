@@ -8,6 +8,24 @@ import type { Job } from "./model.js";
 import type { LiveRuling } from "./bradbury.js";
 
 describe("participant appeal notices", () => {
+  it("backfills a settled Phase 2 case from its verified ruling without querying Phase 3 or emailing participants", async () => {
+    const folder = mkdtempSync(join(tmpdir(),"court-archive-"));
+    const db = new Journal(join(folder,"journal"));
+    try {
+      const job: Job = JSON.parse(readFileSync("examples/taskmarket/settled-pilot.json","utf8"));
+      const io = { base:"https://court.example", now:Date.now, publish:vi.fn(async (_record: LiveCase) => {}),
+        send:vi.fn(), id:vi.fn(), observe:vi.fn(), reasons:vi.fn() };
+      const notices = new CaseNotices(db,io);
+      await notices.update(job);
+      await notices.update(job);
+      expect(io.publish).toHaveBeenCalledTimes(1);
+      expect(io.publish.mock.calls[0][0].milestones[0]).toMatchObject({
+        bradburyPhase:2, evmTx:job.judgments[0].evmTx, status:"Finalized", result:{verdict:"approve"}
+      });
+      expect(io.observe).not.toHaveBeenCalled();
+      expect(io.send).not.toHaveBeenCalled();
+    } finally { db.close(); rmSync(folder,{recursive:true,force:true}); }
+  });
   it("requires both invitations, publishes the ID before a decision, and deduplicates each round across restarts", async () => {
     const folder = mkdtempSync(join(tmpdir(), "court-notices-"));
     const db = new Journal(join(folder,"journal"));

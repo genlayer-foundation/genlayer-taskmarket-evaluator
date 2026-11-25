@@ -114,16 +114,20 @@ export class CaseNotices {
     if (job.scenario || !job.evidence) return;
     const saved = this.journal.db.prepare("SELECT body FROM live_cases WHERE task=?").get(job.id);
     const previous: LiveCase | undefined = saved ? JSON.parse(String(saved.body)) : undefined;
+    // Some settled Phase 2 jobs predate live pages. Publish the verified journal without sending new notices.
+    const archive = job.phase === "settled" && job.judgments.length > 0 &&
+      job.judgments.every(j => !j.bradburyPhase && j.tx && j.result);
     if (["settled","disputed","review"].includes(job.phase)) {
-      if (!previous) return;
+      if (!previous && !archive) return;
       const recipients = [job.evidence.requester, job.evidence.worker];
-      const complete = previous.milestones.every(m => {
+      const complete = previous?.milestones.every(m => {
         if (!m.tx) return true;
         if (!m.bradburyPhase) return false;
+        if (archive) return m.status === "Finalized";
         return m.status === "Canceled" || (m.status === "Finalized" &&
           (!m.result || recipients.every(w => this.delivered(job.id, "final:" + m.tx, w))));
       });
-      if (previous.phase === job.phase && complete) return;
+      if (previous?.phase === job.phase && complete) return;
     }
     const milestones = await Promise.all(job.judgments.map(async j => {
       const record = await this.milestone(job, j, previous?.milestones.find(m => m.milestone === j.milestone));
@@ -136,6 +140,7 @@ export class CaseNotices {
       await this.io.publish(record);
       this.journal.db.prepare("INSERT OR REPLACE INTO live_cases VALUES(?,?)").run(job.id,body);
     }
+    if (archive) return;
     const link = this.io.base + "/case?network=" + settlementNetwork + "&task=" + job.id;
     const ref = "\n\nLive case: " + link;
     const tag = "Internet Court · ";
