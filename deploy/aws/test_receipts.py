@@ -35,7 +35,9 @@ class PublicReceiptsTest(unittest.TestCase):
         self.assertEqual(case["rulings"][0]["reason"], self.job["judgments"][0]["result"]["reasoning"])
         self.assertEqual(set(case), {"id", "venue", "network", "completedAt", "brief", "verdict",
                                      "settlementKind", "amountUnits", "settlementTx", "rulings", "rulingNetwork"})
-        self.assertEqual(set(case["rulings"][0]), {"milestone", "tx", "priceUnits", "rubric", "reason", "result"})
+        self.assertEqual(set(case["rulings"][0]), {"milestone", "tx", "evmTx", "bradburyPhase", "priceUnits", "rubric", "reason", "result"})
+        self.assertEqual(case["rulings"][0]["bradburyPhase"], 2)
+        self.assertEqual(case["rulings"][0]["evmTx"], self.job["judgments"][0]["evmTx"])
         for private in ("private-signed-bytes", "internal-error", "submission.md"):
             self.assertNotIn(private, json.dumps(feed))
 

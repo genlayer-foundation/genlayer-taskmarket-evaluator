@@ -7,6 +7,24 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const fixture = (name: string) => JSON.parse(readFileSync("examples/taskmarket/" + name + ".json", "utf8"));
 afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
 describe("Bradbury rulings for Tempo mainnet", () => {
+  it("binds new rulings to Phase 3 and preserves the published Phase 2 evidence hash", async () => {
+    const { bindRulingDeployment, inputs, publicRulingId } = await import("./bradbury.js");
+    const { decide } = await import("./model.js");
+    const job = fixture("settled-pilot");
+    const original = job.judgments[0];
+    expect(decide(job).evidenceHash).toBe(job.decision.evidenceHash);
+    expect(() => bindRulingDeployment(original)).toThrow("earlier Bradbury deployment");
+    for (const field of ["signed", "evmTx", "tx", "contract", "result"]) {
+      const persisted = { milestone: original.milestone, [field]: original[field] ?? original.tx };
+      expect(() => bindRulingDeployment(persisted)).toThrow("earlier Bradbury deployment");
+    }
+    await expect(publicRulingId({milestone: original.milestone, evmTx: original.evmTx})).resolves.toBeUndefined();
+    const fresh = { milestone: original.milestone };
+    bindRulingDeployment(fresh);
+    expect(fresh).toHaveProperty("bradburyPhase", 3);
+    expect(JSON.parse(inputs(job, fresh)[3]).bradburyConsensus).toBe("0x0f4f0e05475723790e4a2ed0598370783c300926");
+    expect(decide({...job, judgments:[{...original, ...fresh}]}).evidenceHash).not.toBe(job.decision.evidenceHash);
+  });
   it("requires explicit payment and ruling networks and a zero evaluator fee", async () => {
     vi.stubEnv("TASKMARKET_SETTLEMENT_NETWORK", "tempo-mainnet");
     vi.resetModules();

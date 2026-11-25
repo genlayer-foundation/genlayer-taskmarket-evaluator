@@ -8,7 +8,7 @@ import { cli } from "./tempo.js";
 import type { Journal } from "./store.js";
 
 const appealGuide = "Either party can ask a larger GenLayer jury to review a provisional ruling. Have a Bradbury wallet funded with test GEN before judging starts. The quote covers the bond and extra jury work. Allow for gas too. A failed appeal can cost you the bond. The appeal must reach the chain before its deadline. A Taskmarket appeal is separate.";
-export type CaseMilestone = LiveRuling & { milestone: string; tx?: Hash; webDomains?: string[] };
+export type CaseMilestone = LiveRuling & { milestone: string; tx?: Hash; evmTx?: Hash; bradburyPhase?: 2 | 3; webDomains?: string[] };
 export type LiveCase = { id: Hash; network: string; phase: string; milestones: CaseMilestone[] };
 type IO = {
   base: string;
@@ -89,13 +89,18 @@ export class CaseNotices {
   private async milestone(job: Job, j: Judgment, previous?: CaseMilestone): Promise<CaseMilestone> {
     const tx = j.tx ?? previous?.tx ?? await this.io.id(j);
     if (!tx) return { milestone: j.milestone, status: "Awaiting jury" };
+    if (j.bradburyPhase !== 3) {
+      const archived = { milestone: j.milestone, tx, evmTx: j.evmTx, bradburyPhase: 2 as const };
+      if (!j.result) return { ...archived, status: "Phase 2 ruling pending verification" };
+      return { ...previous, ...archived, status: "Finalized", result: { verdict: j.result.verdict, reasoning: j.result.reasoning.slice(0,6000) } };
+    }
     if (j.result && previous?.status === "Finalized" && previous.result) return previous;
     const observation = await this.io.observe(tx).catch(() => undefined);
-    if (!observation) return { milestone: j.milestone, tx, status: "Checking Bradbury" };
+    if (!observation) return { milestone: j.milestone, tx, bradburyPhase: 3, status: "Checking Bradbury" };
     const result = observation.decision && (this.reasons.get(tx + ":" + observation.decision) ??
       (previous?.tx === tx && previous.decision === observation.decision && previous.status === observation.status ? previous.result : undefined));
     const ruling = j.result ?? result;
-    return { milestone: j.milestone, tx, ...observation,
+    return { milestone: j.milestone, tx, bradburyPhase: 3, ...observation,
       ...(ruling ? { result: { verdict: ruling.verdict, reasoning: ruling.reasoning.slice(0,6000) } } : {}) };
   }
   private async loadReasons(job: Job, j: Judgment, m: CaseMilestone) {
@@ -112,8 +117,12 @@ export class CaseNotices {
     if (["settled","disputed","review"].includes(job.phase)) {
       if (!previous) return;
       const recipients = [job.evidence.requester, job.evidence.worker];
-      const complete = previous.milestones.every(m => !m.tx || m.status === "Canceled" ||
-        (m.status === "Finalized" && (!m.result || recipients.every(w => this.delivered(job.id,"final:" + m.tx,w)))));
+      const complete = previous.milestones.every(m => {
+        if (!m.tx) return true;
+        if (!m.bradburyPhase) return false;
+        return m.status === "Canceled" || (m.status === "Finalized" &&
+          (!m.result || recipients.every(w => this.delivered(job.id, "final:" + m.tx, w))));
+      });
       if (previous.phase === job.phase && complete) return;
     }
     const milestones = await Promise.all(job.judgments.map(async j => {

@@ -10,13 +10,13 @@ By default the judges read the submitted public UTF-8 files. A link inside a fil
 
 Cite one to three distinct public HTTPS pages from the agreed hostnames in the milestone rubric or submitted files. Use a stable, public record with the relevant passage near the top. Each judge independently renders the page and reads the first 6,000 characters after whitespace normalization. The judges compare the hashes of the text they used. A passing or failing decision must quote each source. New v2 agreements require one to three eligible citations on a web milestone. Missing citations or too many eligible pages fail the milestone. A retrieval failure or a jury response without verifiable quotes pauses settlement as a technical error. If judges cannot agree on the retrieved text, the evaluator needs an accepted, finalized ruling before it can act. The contract’s `get_web_evidence` view exposes the source URLs and SHA-256 hashes. Open-ended searches and authenticated pages are outside this evidence mode.
 
-On 24 November 2026 a standalone Bradbury jury read a public case record, returned the exact transaction ID requested and quoted the source. Its [finalized web-access ruling](https://scan.bradbury.genlayer.com/tx/0x96f548f6cb11d8b702aa5399203d68ea0a40450ccb82d3673506f37b99a85551) records the result. This check used test GEN and involved no Taskmarket funds.
+On 24 November 2026 a standalone Bradbury jury read a public case record, returned the exact transaction ID requested and quoted the source. The [Phase 2 deployment receipt](https://scan.testnet-chain.genlayer.com/tx/0xe0e7904eedc78d25114c915469932cbadc7b4f69389a030032fa1ae1d6e89332) records ruling ID `0x96f548f6cb11d8b702aa5399203d68ea0a40450ccb82d3673506f37b99a85551`. This check used test GEN and involved no Taskmarket funds.
 
 ## Verified testnet pilot · 23 November 2026
 
 The requester escrowed 1 test OUSD and named the evaluator by address. Bradbury finalized an approval with a score of 92/100. After Taskmarket's five-minute window, Tempo block 45,574,489 recorded transfers of **0.95 OUSD to the worker** and **0.05 OUSD to the evaluator**. This first pilot used a 5% evaluator fee. The current testnet service charges a 0% evaluator fee on new jobs and has a 24-hour evaluation window.
 
-[Taskmarket job](https://testnet-market.daydreams.systems/tasks/0xd0343e6fcec85dc7d78d394b05381260ac37ad6e67b6b23fc9c69dadf4ed3278) · [Finalized Bradbury ruling](https://scan.bradbury.genlayer.com/tx/0x1cfcd1c1ffd6b1e7ce6c007d9161ebc9b1b4714f885ff8aa43b2dbd4ca2f64d4) · [Tempo settlement](https://explore.testnet.tempo.xyz/tx/0x13b63d78b57f4155d3f0c4af68697020f243a82bc4b7e63b29755e6f410eff66) · [Evaluator listing](https://testnet-market.daydreams.systems/agents/0x1380a30dc76b58580101e240b80c25134944b20f) · [Full public evidence record](examples/taskmarket/settled-pilot.json)
+[Taskmarket job](https://testnet-market.daydreams.systems/tasks/0xd0343e6fcec85dc7d78d394b05381260ac37ad6e67b6b23fc9c69dadf4ed3278) · [Archived Phase 2 ruling](https://taskmarket.internetcourt.org/case?network=tempo-testnet&task=0xd0343e6fcec85dc7d78d394b05381260ac37ad6e67b6b23fc9c69dadf4ed3278) · [Tempo settlement](https://explore.testnet.tempo.xyz/tx/0x13b63d78b57f4155d3f0c4af68697020f243a82bc4b7e63b29755e6f410eff66) · [Evaluator listing](https://testnet-market.daydreams.systems/agents/0x1380a30dc76b58580101e240b80c25134944b20f) · [Full public evidence record](examples/taskmarket/settled-pilot.json)
 
 ## Tempo mainnet payments with Bradbury testnet rulings
 
@@ -56,7 +56,7 @@ Open [the local ledger](http://127.0.0.1:4731). The demo seeds approval, rejecti
    npm run taskmarket:evaluator -- preflight
    ```
 
-   Preflight checks Tempo Moderato chain 42431, Taskmarket revision 31, its token and evaluator functions, and the Bradbury Phase 2 genesis, consensus contract, contract schema and fee quote. The official Bradbury faucet has owner eligibility requirements. Test GEN can also come from an existing Bradbury test wallet. [Bradbury faucet](https://testnet-faucet.genlayer.foundation/) · [Taskmarket network identity](https://docs.taskmarket.dev/identity/agent-registration)
+   Preflight checks Tempo Moderato chain 42431, Taskmarket revision 31, its token and evaluator functions, and the Bradbury rollup genesis, Phase 3 consensus and address manager, evaluator schema and fee quote. The official Bradbury faucet has owner eligibility requirements. Test GEN can also come from an existing Bradbury test wallet. [Bradbury faucet](https://testnet-faucet.genlayer.foundation/) · [Taskmarket network identity](https://docs.taskmarket.dev/identity/agent-registration)
 
 3. Start the [live case publisher](deploy/aws/README.md#release-or-recover) and confirm that both participants have registered Taskmarket email inboxes. Then run the first job. This command makes public testnet writes and spends the fixed 1 test OUSD escrow when the Bradbury deposit is covered.
 
@@ -121,7 +121,7 @@ scripts/pilot-wallet evaluator agent profile set --name "Internet Court" \
   --description "Internet Court gives buyers and workers an independent AI jury. GenLayer’s public protocol selects AI judges who use their own models to weigh the work against your terms. They vote publicly, earn rewards and put test GEN at stake. While a verdict is provisional, anyone can fund an appeal for a fresh vote by a larger jury. In our first testnet case, five judges reached a decision 76 seconds after submission. See the ruling and test OUSD payout at https://d1t95mbzk50y2b.cloudfront.net/explorer"
 scripts/pilot-wallet evaluator agent service add --kind evaluation \
   --title "AI jury for milestone payments" --specialty "Research" \
-  --description "Both parties get a live case link by Taskmarket email before judging. Follow each ruling ID, provisional verdict, reasons and deadline. Either party can ask a larger jury to review the decision. Prepare a Bradbury wallet with test GEN for the bond, extra jury work and gas. Our first testnet window was 60 seconds. GenLayer mainnet will allow 30 minutes per decision. This demo uses test OUSD. Verdicts due within 24h. Evaluator fee 0%. Email ivan@genlayer.foundation before posting." \
+  --description "Both parties get a live case link by Taskmarket email before judging. Follow each ruling ID, provisional verdict, reasons and deadline. Either party can ask a larger jury to review the decision. Prepare a Bradbury wallet with test GEN for the bond, extra jury work and gas. Bradbury Phase 3 starts with a 30-minute appeal window. Use the deadline on your live ruling. This demo uses test OUSD. Verdicts due within 24h. Evaluator fee 0%. Email ivan@genlayer.foundation before posting." \
   --deliverable "The AI jury’s verdict on each milestone, its reasons and the price you agreed. After settlement, a public receipt shows the amount paid to the worker or refunded to the buyer." \
   --fee-bps 0 --evaluation-window 24 --chain tempo-testnet
 scripts/pilot-wallet evaluator agents evaluators --specialty "Research"
@@ -140,8 +140,8 @@ npm run build
 npm test
 npm --prefix dashboard run build
 python3 -m pip install -r requirements-test.txt
-GENVM_VERSION=v0.6.0-rc10 genvm-lint check contracts/acp_evaluator.py
-GENVM_VERSION=v0.6.0-rc10 gltest tests/direct/ -q
+GENVM_VERSION=v0.6.0-rc17 genvm-lint check contracts/acp_evaluator.py
+GENVM_VERSION=v0.6.0-rc17 gltest tests/direct/ -q
 ```
 
 This project is a fork of the [Virtuals ACP evaluator](https://github.com/genlayerlabs/genlayer-acp-evaluator). Its original integration remains available through `npm run start:acp`.

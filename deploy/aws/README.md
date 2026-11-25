@@ -4,6 +4,8 @@ The Tempo testnet worker runs on one private ARM64 EC2 instance in the Foundatio
 
 ## Inspect the installation
 
+Both workers submit fresh rulings to Bradbury Phase 3. Run `node dist/src/taskmarket/main.js preflight` in each worker to check the deployment, evaluator schema, current quote and signer balance. The execution node is `https://rpc.bradbury.genlayer.com`. The SDK uses the Orbit RPC for gas, signed submissions and consensus receipts. On a cutover, an earlier journaled deployment stays on its original consensus contract. The public record links its Phase 2 deployment receipt on Orbit.
+
 Use the Foundation Apps SSO profile below or equivalent account credentials. Run these commands from an operator terminal.
 
 ```sh

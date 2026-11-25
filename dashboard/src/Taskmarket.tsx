@@ -47,7 +47,6 @@ function LinkHash({ value, base }: { value?: string; base?: string }) {
 }
 function Detail({ j, mode }: { j: Entry; mode: Mode }) {
   const tempo = networks[mode].tx;
-  const gl = mode === "simulation" ? undefined : "https://scan.bradbury.genlayer.com/tx/";
   return (
     <article className="tm-detail">
       <header>
@@ -93,7 +92,9 @@ function Detail({ j, mode }: { j: Entry; mode: Mode }) {
               </p>
             )}
             <small>
-              {mode === "simulation" ? "Simulated ruling" : "Bradbury testnet ruling"} <LinkHash value={r?.tx} base={gl} />
+              {mode === "simulation" ? "Simulated ruling" : "Bradbury ruling"} <LinkHash value={r?.tx}
+                base={mode !== "simulation" && r?.bradburyPhase === 3 ? "https://scan.bradbury.genlayer.com/tx/" : undefined} />
+              {mode !== "simulation" && r?.tx && !r.bradburyPhase && r.evmTx && <> · Phase 2 deployment <LinkHash value={r.evmTx} base="https://scan.testnet-chain.genlayer.com/tx/" /></>}
             </small>
           </section>
         );

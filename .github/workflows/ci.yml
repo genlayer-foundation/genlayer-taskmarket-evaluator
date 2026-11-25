@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  GENVM_VERSION: v0.6.0-rc10
+  GENVM_VERSION: v0.6.0-rc17
 
 jobs:
   lint-contract:

@@ -16,7 +16,7 @@ describe("participant appeal notices", () => {
       job.phase = "evaluating";
       job.agreement.milestones[0].webDomains = ["docs.genlayer.com"];
       const {tx, milestone} = job.judgments[0];
-      job.judgments = [{milestone}];
+      job.judgments = [{milestone, bradburyPhase:3}];
       const snapshots: LiveCase[] = [];
       let clock = 10_000, blocked = true;
       let txId: typeof tx;

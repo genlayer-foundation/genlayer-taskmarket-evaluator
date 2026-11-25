@@ -18,6 +18,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { TransactionStatus } from "genlayer-js/types";
 import type { Hash } from "genlayer-js/types";
 import { studionet, testnetBradbury, localnet } from "genlayer-js/chains";
+import { createBradburyClient, deploymentFees } from "../../src/genlayer/bradburyNetwork.js";
 
 const PRIVATE_KEY = process.env.GENLAYER_PRIVATE_KEY as `0x${string}`;
 const CHAIN_NAME = process.env.GENLAYER_CHAIN ?? "studionet";
@@ -33,7 +34,7 @@ const contractCode = new Uint8Array(
 
 function getClient() {
   const account = privateKeyToAccount(PRIVATE_KEY);
-  return createClient({ chain, account });
+  return chain === testnetBradbury ? createBradburyClient(account) : createClient({ chain, account });
 }
 
 describe("GenLayer ACP Evaluator — Integration", () => {
@@ -48,6 +49,8 @@ describe("GenLayer ACP Evaluator — Integration", () => {
   describe("deploy evaluation", () => {
     it("deploys a contract and stores evaluation result", async () => {
       const txHash = await client.deployContract({
+        fees: await deploymentFees(client),
+        consensusMaxRotations: 0,
         code: contractCode,
         args: [
           "Write a haiku about blockchain",
@@ -97,6 +100,8 @@ describe("GenLayer ACP Evaluator — Integration", () => {
       const metadata = JSON.stringify({ rubric_version: "v2", score_tolerance: 15 });
 
       const txHash = await client.deployContract({
+        fees: await deploymentFees(client),
+        consensusMaxRotations: 0,
         code: contractCode,
         args: [taskSpec, submission, rubric, metadata],
       }) as Hash;
@@ -153,6 +158,8 @@ describe("GenLayer ACP Evaluator — Integration", () => {
     it("can appeal an accepted evaluation on Bradbury", async () => {
       // Deploy with a clearly rejectable submission
       const txHash = await client.deployContract({
+        fees: await deploymentFees(client),
+        consensusMaxRotations: 0,
         code: contractCode,
         args: [
           "Write a comprehensive REST API with authentication, rate limiting, and database integration using Node.js and Express.",

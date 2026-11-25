@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createClient } from "genlayer-js";
 import { privateKeyToAccount } from "viem/accounts";
 import { testnetBradbury, studionet, localnet } from "genlayer-js/chains";
+import { createBradburyClient } from "./bradburyNetwork.js";
 
 const privateKey = process.env.GENLAYER_PRIVATE_KEY as `0x${string}`;
 if (!privateKey) {
@@ -18,7 +19,4 @@ const chain =
       ? studionet
       : testnetBradbury;
 
-export const glClient = createClient({
-  chain,
-  account
-});
+export const glClient = chain === testnetBradbury ? createBradburyClient(account) : createClient({ chain, account });

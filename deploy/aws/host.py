@@ -35,7 +35,9 @@ def serve_cases(bucket, network, socket_path):
                         record["network"] != network or record["id"] != self.path[1:]):
                     return self.send_error(400)
                 for item in record["milestones"]:
-                    if (set(item) - {"milestone", "status", "tx", "decision", "deadline", "result", "webDomains"} or
+                    if (set(item) - {"milestone", "status", "tx", "evmTx", "bradburyPhase", "decision", "deadline", "result", "webDomains"} or
+                            ("bradburyPhase" in item and item["bradburyPhase"] not in (2, 3)) or
+                            ("evmTx" in item and not re.fullmatch(r"0x[0-9a-fA-F]{64}", item["evmTx"])) or
                             ("webDomains" in item and not (isinstance(item["webDomains"], list) and
                              1 <= len(item["webDomains"]) <= 8 and all(isinstance(d, str) and len(d) <= 253 and
                              re.fullmatch(r"[a-z0-9.-]+", d) for d in item["webDomains"]))) or
@@ -134,6 +136,9 @@ def receipt_feed(database, chain=42431):
                 ruling["webDomains"] = terms["webDomains"]
             if j.get("tx"):
                 ruling["tx"] = j["tx"]
+                ruling["bradburyPhase"] = j.get("bradburyPhase", 2)
+                if j.get("evmTx"):
+                    ruling["evmTx"] = j["evmTx"]
                 if j.get("result"):
                     ruling.update(result=j["result"]["verdict"], reason=j["result"]["reasoning"])
             row["rulings"].append(ruling)

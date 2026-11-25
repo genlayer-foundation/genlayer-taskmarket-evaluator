@@ -1,10 +1,9 @@
-import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel} from "./jury.mjs";
+import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel, rulingLink} from "./jury.mjs";
 const query = new URLSearchParams(location.search);
 const network = query.get("network"), task = query.get("task");
 const validId = value => /^0x[a-f0-9]{64}$/.test(value || "");
 const statusLine = document.querySelector("#status"), list = document.querySelector("#milestones");
 const page = document.querySelector("#task");
-const rpc = "https://rpc-bradbury.genlayer.com";
 function el(tag, text) { const node = document.createElement(tag); node.textContent = text; return node; }
 function link(label, url) { const a = el("a", label); a.href = url; a.className = "text-link"; return a; }
 let last = "", stopped = false, connected = false;
@@ -21,18 +20,20 @@ function render(data) {
     if (m.result && (m.status === "Finalized" || (m.status === "Accepted" && m.decision)))
       card.append(el("h3","Jury reasoning"),el("p",m.result.reasoning));
     if (validId(m.tx)) {
-      card.append(link("Inspect the Bradbury ruling", "https://scan.bradbury.genlayer.com/tx/" + m.tx), el("code",m.tx));
+      const receipt = rulingLink(m);
+      if (receipt) card.append(link(receipt.label, receipt.url));
+      card.append(el("code",m.tx));
     }
     if (m.decision && Number.isSafeInteger(m.deadline) && validId(m.tx)) {
       const epoch = m.deadline * 1000;
       card.append(el("p","Decision " + m.decision + " · Appeal deadline " + new Date(epoch).toISOString().replace("T"," ").replace(".000Z"," UTC")));
       const clock = el("strong",""); clock.dataset.deadline = String(epoch); card.append(clock);
     }
-    if (validId(m.tx) && !["Finalized","Canceled"].includes(m.status)) {
+    if (m.bradburyPhase === 3 && validId(m.tx) && !["Finalized","Canceled"].includes(m.status)) {
       const commands = el("details",""); commands.dataset.expires = String((m.deadline || 0) * 1000);
       commands.append(el("summary", m.decision ? "Check the quote and appeal with the GenLayer CLI" : "Prepare the commands for this ruling"),
         el("p","Once the jury has issued an eligible decision, check the quote. Use the second command only if you want to fund an appeal from your wallet."),
-        el("pre","genlayer appeal-bond " + m.tx + " --rpc " + rpc + "\n" + "genlayer appeal " + m.tx + " --rpc " + rpc));
+        el("pre","genlayer network set testnet-bradbury\ngenlayer appeal-bond " + m.tx + "\ngenlayer appeal " + m.tx));
       card.append(commands);
     }
     list.append(card);

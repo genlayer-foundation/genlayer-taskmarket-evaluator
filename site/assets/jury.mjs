@@ -1,5 +1,12 @@
 "use strict";
 
+export function rulingLink(m) {
+  if (m.bradburyPhase === 3 && /^0x[0-9a-f]{64}$/i.test(m.tx))
+    return { label: "Inspect Phase 3 ruling", url: "https://scan.bradbury.genlayer.com/tx/" + m.tx };
+  if ((m.bradburyPhase === 2 || m.bradburyPhase === undefined) && /^0x[0-9a-f]{64}$/i.test(m.evmTx))
+    return { label: "Inspect Phase 2 deployment receipt", url: "https://scan.testnet-chain.genlayer.com/tx/" + m.evmTx };
+}
+
 export const juryLabels = {
   approve: "Approved", reject: "Rejected", partial: "Partial award", needs_review: "Payment decision withheld",
   error: "Evaluation failed", finalized: "Jury rulings finalized", enrolled: "Awaiting submission",

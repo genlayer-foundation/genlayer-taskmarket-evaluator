@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createClient } from "genlayer-js";
 import { testnetBradbury } from "genlayer-js/chains";
 import { TransactionHashVariant, type Hash as GenHash } from "genlayer-js/types";
 import { privateKeyToAccount } from "viem/accounts";
@@ -18,8 +17,8 @@ import {
 } from "viem";
 import { address, commitment, Review, rulingSchema, type Job, type Judgment } from "./model.js";
 import { webSources } from "./webSources.js";
+import { bradburyDeployment, createBradburyClient, depositCeiling, juryFeeOptions, orbitEndpoint } from "../genlayer/bradburyNetwork.js";
 
-const nodeEndpoint = "https://rpc-bradbury.genlayer.com";
 export const code = readFileSync(
   fileURLToPath(
     new URL("../../contracts/acp_evaluator.py", new URL(import.meta.url.replace("/dist/src/", "/src/"))),
@@ -44,6 +43,7 @@ export function inputs(job: Job, j: Judgment) {
     submissionId: e.submissionId,
     submitTx: e.submitTx,
     evidenceHash: commitment(e),
+    ...(j.bradburyPhase === 3 && { bradburyConsensus: bradburyDeployment.consensus }),
     ...(job.agreement.version === "genlayer-taskmarket/v2" && { decision_policy: "pass-fail" }),
     ...(milestone.webDomains && {
       web: webSources(milestone.webDomains, [milestone.rubric, ...e.files.map(f => f.text)]),
@@ -51,10 +51,10 @@ export function inputs(job: Job, j: Judgment) {
   };
   return [job.agreement.brief, JSON.stringify(e.files), milestone.rubric, JSON.stringify(metadata)];
 }
-const evm = createPublicClient({ transport: http(nodeEndpoint) });
-const observer = createClient({ chain: testnetBradbury, endpoint: nodeEndpoint });
+const evm = createPublicClient({ transport: http(orbitEndpoint) });
+const observer = createBradburyClient();
 export async function publicRulingId(j: Judgment) {
-  if (j.tx || !j.evmTx) return j.tx;
+  if (j.tx || !j.evmTx || j.bradburyPhase !== 3) return j.tx;
   const receipt = await evm.getTransactionReceipt({ hash: j.evmTx }).catch((error) => {
     if (error instanceof TransactionReceiptNotFoundError) return null;
     throw error;
@@ -102,39 +102,35 @@ export async function provisionalReasons(job: Job, j: Judgment, tx: Hash) {
   const result = rulingSchema.parse(value);
   return { verdict: result.verdict, reasoning: result.reasoning };
 }
-const feeOptions = {
-  leaderTimeunitsAllocation: 130n,
-  validatorTimeunitsAllocation: 230n,
-  executionBudgetPerRound: 1_000_000_000_000_000_000n,
-  appealRounds: 0n,
-  rotations: [0n],
-  totalMessageFees: 0n,
-};
-const depositCeiling = 3_000_000_000_000_000_000n;
 async function connect() {
-  const client = createClient({ chain: testnetBradbury, endpoint: nodeEndpoint });
+  const client = observer;
   const [chain, genesis] = await Promise.all([evm.getChainId(), evm.getBlock({ blockNumber: 0n })]);
   if (
-    chain !== testnetBradbury.id ||
-    genesis.hash !== "0x17d89764d4f4f963158fc4c5e8f2cb670c2837740b35f37081c12860c3df97e4"
+    chain !== bradburyDeployment.chainId || chain !== testnetBradbury.id ||
+    genesis.hash !== bradburyDeployment.genesis
   )
     throw new Error("Unexpected Bradbury network");
   if (
-    address.parse(client.chain.consensusMainContract?.address) !==
-    "0x2e2766cbc3e5e61ce93bbcdcbb3eacb82082a019"
+    address.parse(client.chain.consensusMainContract?.address) !== bradburyDeployment.consensus ||
+    address.parse(client.chain.consensusDataContract?.address) !== bradburyDeployment.data
   )
     throw new Error("Unexpected Bradbury consensus contract");
-  await client.getContractSchemaForCode(code);
+  const manager = await evm.readContract({ address: bradburyDeployment.consensus,
+    abi: parseAbi(["function addressManager() view returns (address)"]), functionName: "addressManager" });
+  if (address.parse(manager) !== bradburyDeployment.manager) throw new Error("Unexpected Bradbury Phase 3 address manager");
+  const schema = await client.getContractSchemaForCode(code);
+  if (!["get_input", "get_result", "get_web_evidence"].every(method => schema.methods?.[method]?.readonly))
+    throw new Error("Phase 3 node could not verify the evaluator views");
   return client;
 }
 export async function bradburyPreflight(wallet?: Address) {
   const client = await connect();
   const [fees, balance] = await Promise.all([
-    client.estimateTransactionFees(feeOptions),
+    client.estimateTransactionFees(juryFeeOptions),
     wallet ? evm.getBalance({ address: wallet }) : undefined,
   ]);
   return {
-    network: "Bradbury Phase 2",
+    network: "Bradbury Phase 3",
     chainId: client.chain.id,
     consensus: client.chain.consensusMainContract?.address,
     schemaVerified: true,
@@ -144,11 +140,18 @@ export async function bradburyPreflight(wallet?: Address) {
     depositCovered: balance !== undefined && balance > fees.feeValue && fees.feeValue <= depositCeiling,
   };
 }
+export function bindRulingDeployment(j: Judgment) {
+  if (j.bradburyPhase !== 3 && (j.signed || j.evmTx || j.tx || j.contract || j.result))
+    throw new Review("This ruling originated on an earlier Bradbury deployment and requires its original record");
+  if (j.evmTx && !j.signed && !j.tx) throw new Review("Missing journaled deployment envelope or ruling ID");
+  j.bradburyPhase = 3;
+}
 export async function bradbury(privateKey: Hash) {
   const account = privateKeyToAccount(privateKey);
   const client = await connect();
   const consensus = address.parse(client.chain.consensusMainContract?.address);
   return async (job: Job, j: Judgment, save: () => void) => {
+    bindRulingDeployment(j);
     const args = inputs(job, j);
     if (!j.signed && !j.tx) {
       // The SDK signs before broadcasting. Commit the exact envelope inside the signer so
@@ -165,7 +168,7 @@ export async function bradbury(privateKey: Hash) {
           return raw;
         },
       };
-      const fees = await client.estimateTransactionFees(feeOptions);
+      const fees = await client.estimateTransactionFees(juryFeeOptions);
       if (fees.feeValue > depositCeiling)
         throw new Review("Quoted deposit exceeds the pilot ceiling of 3 test GEN per milestone");
       if ((await evm.getBalance({ address: account.address })) <= fees.feeValue)

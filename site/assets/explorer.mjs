@@ -1,4 +1,4 @@
-import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel} from "./jury.mjs";
+import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel, rulingLink} from "./jury.mjs";
 
 const form = document.querySelector("#filters");
 const statusLine = document.querySelector("#status");
@@ -73,7 +73,7 @@ function validRecord(row, group) {
 
 function milestones(row, snapshot) {
   return row.rulings.map(r => {
-    const base = {milestone: r.milestone, tx: r.tx, status: r.tx ? "Pending" : "Awaiting jury"};
+    const base = {milestone: r.milestone, tx: r.tx, evmTx: r.evmTx, bradburyPhase: r.bradburyPhase, status: r.tx ? "Pending" : "Awaiting jury"};
     if (r.result) return {...base, status: "Finalized", result: {verdict: r.result, reasoning: r.reason}};
     const m = snapshot?.milestones.find(item => item.milestone === r.milestone);
     if (!m || !transaction.test(m.tx) || (r.tx && m.tx !== r.tx)) return base;
@@ -106,7 +106,8 @@ function caseCard(row, stage, ms, inProgress, stale, expanded) {
   const permalink = "/explorer?case=" + row.id + "&network=" + row.network;
   links.append(link("Link to this case", permalink));
   if (live.has(key)) links.append(link("Follow live jury record", "/case?network=" + row.network + "&task=" + row.id));
-  if (ms.length === 1 && transaction.test(ms[0].tx)) links.append(link("Inspect jury transaction", "https://scan.bradbury.genlayer.com/tx/" + ms[0].tx));
+  const primaryRuling = ms.length === 1 && rulingLink(ms[0]);
+  if (primaryRuling) links.append(link(primaryRuling.label, primaryRuling.url));
   const detail = element("details");
   detail.open = expanded;
   detail.append(element("summary", "Milestones, terms and payment"));
@@ -117,7 +118,8 @@ function caseCard(row, stage, ms, inProgress, stale, expanded) {
     item.append(element("h3", r.milestone + " · " + milestoneLabel(m)), element("p", r.rubric),
       element("p", evidenceLabel(r.webDomains)),
       element("p", "Agreed price " + money(r.priceUnits, network.token)));
-    if (ms.length > 1 && transaction.test(m.tx)) item.append(link("Inspect jury transaction", "https://scan.bradbury.genlayer.com/tx/" + m.tx));
+    const receipt = ms.length > 1 && rulingLink(m);
+    if (receipt) item.append(link(receipt.label, receipt.url));
     items.append(item);
   });
   detail.append(items, link("Task on Taskmarket", network.task + row.id));

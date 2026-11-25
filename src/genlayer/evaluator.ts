@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import path from "path";
 import { glClient } from "./client.js";
+import { deploymentFees } from "./bradburyNetwork.js";
 import { TransactionStatus } from "genlayer-js/types";
 import type { Hash } from "genlayer-js/types";
 import type { SubmitEvalRequest } from "../types.js";
@@ -45,6 +46,8 @@ export async function deployEvaluation(input: SubmitEvalRequest): Promise<EvalDe
 
   const txHash = await glClient.deployContract({
     code: contractCode,
+    fees: await deploymentFees(glClient),
+    consensusMaxRotations: 0,
     args: [
       input.taskSpec,
       input.submission,

@@ -108,6 +108,7 @@ export type Evidence = {
 };
 export type Judgment = {
   milestone: string;
+  bradburyPhase?: 3;
   signed?: Hash;
   evmTx?: Hash;
   tx?: Hash;
@@ -199,8 +200,9 @@ export function decide(job: Job): Decision {
     bradburyChainId: 4221,
     evidence,
     agreement,
-    rulings: judgments.map(({ milestone, tx, contract, result }) => ({
+    rulings: judgments.map(({ milestone, tx, contract, result, bradburyPhase }) => ({
       milestone,
+      ...(bradburyPhase && { bradburyPhase }),
       tx,
       contract,
       result,
