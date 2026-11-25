@@ -33,7 +33,7 @@ describe("participant appeal notices", () => {
       const job: Job = JSON.parse(readFileSync("examples/taskmarket/settled-pilot.json","utf8"));
       job.phase = "evaluating";
       job.agreement.milestones[0].webDomains = ["docs.genlayer.com"];
-      const {tx, milestone} = job.judgments[0];
+      const {tx, evmTx, milestone} = job.judgments[0];
       job.judgments = [{milestone, bradburyPhase:3}];
       const snapshots: LiveCase[] = [];
       let clock = 10_000, blocked = true;
@@ -59,8 +59,9 @@ describe("participant appeal notices", () => {
       expect(service.ready(job)).toBe(true);
       expect(io.send.mock.calls.filter(([wallet])=>wallet === job.evidence!.requester)).toHaveLength(1);
       txId = tx;
+      job.judgments[0].evmTx = evmTx;
       await service.update(job); await service.drain();
-      expect(snapshots.at(-1)?.milestones[0].tx).toBe(tx);
+      expect(snapshots.at(-1)?.milestones[0]).toMatchObject({tx, evmTx, bradburyPhase:3});
       state = { status:"Accepted", decision:"1", deadline:70 };
       await service.update(job); await service.drain();
       await service.update(job); await service.drain();

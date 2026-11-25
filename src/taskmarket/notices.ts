@@ -94,13 +94,14 @@ export class CaseNotices {
       if (!j.result) return { ...archived, status: "Phase 2 ruling pending verification" };
       return { ...previous, ...archived, status: "Finalized", result: { verdict: j.result.verdict, reasoning: j.result.reasoning.slice(0,6000) } };
     }
-    if (j.result && previous?.status === "Finalized" && previous.result) return previous;
+    const identity = { milestone: j.milestone, tx, evmTx: j.evmTx, bradburyPhase: 3 as const };
+    if (j.result && previous?.tx === tx && previous.status === "Finalized" && previous.result) return { ...previous, ...identity };
     const observation = await this.io.observe(tx).catch(() => undefined);
-    if (!observation) return { milestone: j.milestone, tx, bradburyPhase: 3, status: "Checking Bradbury" };
+    if (!observation) return { ...identity, status: "Checking Bradbury" };
     const result = observation.decision && (this.reasons.get(tx + ":" + observation.decision) ??
       (previous?.tx === tx && previous.decision === observation.decision && previous.status === observation.status ? previous.result : undefined));
     const ruling = j.result ?? result;
-    return { milestone: j.milestone, tx, bradburyPhase: 3, ...observation,
+    return { ...identity, ...observation,
       ...(ruling ? { result: { verdict: ruling.verdict, reasoning: ruling.reasoning.slice(0,6000) } } : {}) };
   }
   private async loadReasons(job: Job, j: Judgment, m: CaseMilestone) {

@@ -1,4 +1,4 @@
-import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel, rulingLink} from "./jury.mjs";
+import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel, rulingLinks} from "./jury.mjs";
 const query = new URLSearchParams(location.search);
 const network = query.get("network"), task = query.get("task");
 const validId = value => /^0x[a-f0-9]{64}$/.test(value || "");
@@ -20,8 +20,7 @@ function render(data) {
     if (m.result && (m.status === "Finalized" || (m.status === "Accepted" && m.decision)))
       card.append(el("h3","Jury reasoning"),el("p",m.result.reasoning));
     if (validId(m.tx)) {
-      const receipt = rulingLink(m);
-      if (receipt) card.append(link(receipt.label, receipt.url));
+      for (const receipt of rulingLinks(m)) card.append(link(receipt.label, receipt.url));
       card.append(el("code",m.tx));
     }
     if (m.decision && Number.isSafeInteger(m.deadline) && validId(m.tx)) {

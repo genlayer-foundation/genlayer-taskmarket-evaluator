@@ -1,4 +1,4 @@
-import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel, rulingLink} from "./jury.mjs";
+import {evidenceLabel, finalOutcome, juryLabels, juryStage, milestoneLabel, rulingLinks} from "./jury.mjs";
 
 const form = document.querySelector("#filters");
 const statusLine = document.querySelector("#status");
@@ -106,8 +106,8 @@ function caseCard(row, stage, ms, inProgress, stale, expanded) {
   const permalink = "/explorer?case=" + row.id + "&network=" + row.network;
   links.append(link("Link to this case", permalink));
   if (live.has(key)) links.append(link("Follow live jury record", "/case?network=" + row.network + "&task=" + row.id));
-  const primaryRuling = ms.length === 1 && rulingLink(ms[0]);
-  if (primaryRuling) links.append(link(primaryRuling.label, primaryRuling.url));
+  if (ms.length === 1)
+    for (const receipt of rulingLinks(ms[0])) links.append(link(receipt.label, receipt.url));
   const detail = element("details");
   detail.open = expanded;
   detail.append(element("summary", "Milestones, terms and payment"));
@@ -118,8 +118,8 @@ function caseCard(row, stage, ms, inProgress, stale, expanded) {
     item.append(element("h3", r.milestone + " · " + milestoneLabel(m)), element("p", r.rubric),
       element("p", evidenceLabel(r.webDomains)),
       element("p", "Agreed price " + money(r.priceUnits, network.token)));
-    const receipt = ms.length > 1 && rulingLink(m);
-    if (receipt) item.append(link(receipt.label, receipt.url));
+    if (ms.length > 1)
+      for (const receipt of rulingLinks(m)) item.append(link(receipt.label, receipt.url));
     items.append(item);
   });
   detail.append(items, link("Task on Taskmarket", network.task + row.id));

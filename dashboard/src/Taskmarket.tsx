@@ -94,7 +94,7 @@ function Detail({ j, mode }: { j: Entry; mode: Mode }) {
             <small>
               {mode === "simulation" ? "Simulated ruling" : "Bradbury ruling"} <LinkHash value={r?.tx}
                 base={mode !== "simulation" && r?.bradburyPhase === 3 ? "https://scan.bradbury.genlayer.com/tx/" : undefined} />
-              {mode !== "simulation" && r?.tx && !r.bradburyPhase && r.evmTx && <> · Phase 2 deployment <LinkHash value={r.evmTx} base="https://scan.testnet-chain.genlayer.com/tx/" /></>}
+              {mode !== "simulation" && r?.tx && r.evmTx && <> · Phase {r.bradburyPhase ?? 2} deployment <LinkHash value={r.evmTx} base="https://scan.testnet-chain.genlayer.com/tx/" /></>}
             </small>
           </section>
         );

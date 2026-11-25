@@ -1,10 +1,15 @@
 "use strict";
 
-export function rulingLink(m) {
-  if (m.bradburyPhase === 3 && /^0x[0-9a-f]{64}$/i.test(m.tx))
-    return { label: "Inspect Phase 3 ruling", url: "https://scan.bradbury.genlayer.com/tx/" + m.tx };
-  if ((m.bradburyPhase === 2 || m.bradburyPhase === undefined) && /^0x[0-9a-f]{64}$/i.test(m.evmTx))
-    return { label: "Inspect Phase 2 deployment receipt", url: "https://scan.testnet-chain.genlayer.com/tx/" + m.evmTx };
+export function rulingLinks(m) {
+  const phase = m.bradburyPhase ?? 2;
+  if (phase !== 2 && phase !== 3) return [];
+  const hash = /^0x[0-9a-f]{64}$/i;
+  const links = [];
+  if (phase === 3 && hash.test(m.tx))
+    links.push({ label: "Inspect Phase 3 ruling", url: "https://scan.bradbury.genlayer.com/tx/" + m.tx });
+  if (hash.test(m.evmTx))
+    links.push({ label: "Inspect Phase " + phase + " deployment receipt", url: "https://scan.testnet-chain.genlayer.com/tx/" + m.evmTx });
+  return links;
 }
 
 export const juryLabels = {
